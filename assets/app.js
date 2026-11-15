@@ -189,7 +189,8 @@
   function viewAnmelden() {
     var mail = (new URLSearchParams(location.search)).get('mail') || sessionStorageGet('op_mail') || '';
     mount('<div class="auth">' +
-      '<section class="side" aria-label="Über Objektpilot"><span class="eyebrow" style="color:var(--sand)">Objektpilot</span><h1>Ihre Anlage V.<br><em>Von der Kanzlei geprüft.</em></h1>' +
+      '<section class="side" aria-label="Über Objektpilot"><span class="eyebrow">Anlage V für Kapitalanleger</span><h1>Mehr netto<br>aus Ihrer Wohnung.<br><em>Von der Kanzlei geprüft.</em></h1>' +
+      '<div class="demo" aria-hidden="true"><span>Beispiel: Ihr Netto-Plus mit Freibetrag</span><strong>+551 €</strong><small>im Monat, vorläufig</small></div>' +
       '<ul><li>Die Daten aus Ihrem Kauf sind schon da. Sie prüfen und ergänzen nur.</li><li>Eine Steuerkanzlei prüft alles und gibt die Anlage V frei.</li><li>Server in Frankfurt. Ihr Vertrieb sieht keine Steuerdaten.</li></ul></section>' +
       '<section class="form"><div class="stack" id="authBox">' + authSchritt1(mail) + '</div></section></div>', 'Anmelden');
   }
@@ -342,9 +343,13 @@
       if (offen) {
         var n = fortschritt(), naechste = ABS.filter(function (x) { return !absFertig(x.k); })[0] || ABS[7];
         var alleFertig = n >= 7;
+        var rv = rechne(A.daten, a.vz, []), plus = rv && rv.freibetrag && rv.freibetrag.steuerwirkungMonat;
         mount('<div class="wrap narrow stack">' + kopf +
-          '<div class="card pad stack"><div class="row"><b>' + n + ' von 7 Schritten erledigt</b><span class="spacer"></span><span class="tiny">Alles wird automatisch gespeichert</span></div><div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="7" aria-valuenow="' + n + '"><i style="width:' + Math.round(n / 7 * 100) + '%"></i></div>' +
-          '<a class="btn" href="#/akte/' + id + '/' + naechste.k + '">' + (n === 0 ? 'Jetzt starten' : 'Weiter mit: ' + naechste.t) + '</a></div>' +
+          '<section class="hero" aria-label="Ihr Netto-Plus und Fortschritt"><span class="eyebrow">Ihr Netto-Plus' + (plus ? ' ab ' + rv.freibetrag.jahr : '') + '</span>' +
+          (plus ? '<div class="big num">+' + eur(plus) + '<small>im Monat, vorläufig</small></div><p class="small">So viel weniger Lohnsteuer zahlen Sie voraussichtlich mit Freibetrag. Die Kanzlei prüft die Zahl, bevor sie gilt.</p>'
+            : '<div class="big">+ ? €<small>im Monat</small></div><p class="small">Sobald Wohnung, Miete und Finanzierung eingetragen sind, sehen Sie hier, wie viel mehr netto im Monat drin ist.</p>') +
+          '<div class="row"><b>' + n + ' von 7 Schritten erledigt</b><span class="spacer"></span><span class="tiny">Alles wird automatisch gespeichert</span></div><div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="7" aria-valuenow="' + n + '"><i style="width:' + Math.max(3, Math.round(n / 7 * 100)) + '%"></i></div>' +
+          '<a class="btn" href="#/akte/' + id + '/' + naechste.k + '">' + (n === 0 ? 'Jetzt starten' : 'Weiter mit: ' + naechste.t) + ' →</a></section>' +
           '<ol class="tasks">' + ABS.map(function (x, i) {
             var fertig = absFertig(x.k), gesperrt = x.k === 'auftrag' && !alleFertig;
             var inner = '<span class="n" aria-hidden="true">' + (fertig ? '✓' : i + 1) + '</span><span class="t"><b>' + x.t + '</b><span>' + x.s + '</span></span>' + (fertig ? '<span class="chip c-ok">Erledigt</span>' : gesperrt ? '<span class="chip c-grey">Zuerst Schritte 1 bis 7</span>' : '<span class="chip c-grey">Offen</span>');
@@ -355,6 +360,11 @@
       }
       mount('<div class="wrap narrow stack">' + kopf + statusInhalt() + '</div>', a.objekt_bezeichnung);
     } catch (e) { fehler(e); }
+  }
+  function werktagePlus(s, n) {
+    var d = s ? new Date(s) : new Date();
+    while (n > 0) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0 && d.getDay() !== 6) n--; }
+    return d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' });
   }
   function kanzleiName(id) { var o = S.orgs.filter(function (x) { return x.id === id; })[0]; return o ? o.name : 'Ihre Kanzlei'; }
   function nachrichtenHtml(msgs, ich) {
@@ -371,7 +381,7 @@
       html += nachrichtenHtml(A.msgs, 'kaeufer');
       return html;
     }
-    html += '<div class="card pad"><div class="tl">' + schritte.map(function (x) { return '<div class="' + (x[1] === 1 ? 'd' : x[1] === 2 ? 'now' : '') + '"><span><b>' + x[0] + '</b>' + (x[1] === 2 ? '<small>' + (s === 'rueckfrage' ? 'Die Kanzlei hat eine Frage an Sie' : 'Läuft, meist innerhalb von fünf Werktagen') + '</small>' : '') + '</span></div>'; }).join('') + '</div></div>';
+    html += '<div class="card pad"><div class="tl">' + schritte.map(function (x) { return '<div class="' + (x[1] === 1 ? 'd' : x[1] === 2 ? 'now' : '') + '"><span><b>' + x[0] + '</b>' + (x[1] === 2 ? '<small>' + (s === 'rueckfrage' ? 'Die Kanzlei hat eine Frage an Sie' : 'Voraussichtlich fertig bis ' + werktagePlus(a.updated_at, 5)) + '</small>' : '') + '</span></div>'; }).join('') + '</div></div>';
     if (s === 'rueckfrage' || A.msgs.length) {
       html += '<section class="card pad stack" aria-labelledby="nh"><h2 class="h3" id="nh">Nachrichten mit der Kanzlei</h2>' + nachrichtenHtml(A.msgs, 'kaeufer') +
         (s === 'rueckfrage' ? '<form class="stack" id="fAntwort"><div class="field"><label for="antwort">Ihre Antwort</label><textarea class="ta" id="antwort" rows="3" required></textarea></div><div class="row"><button class="btn" type="submit">Antwort senden</button><a class="btn sec" href="#/akte/' + a.id + '/unterlagen">Unterlage nachreichen</a></div></form>' : '') + '</section>';
@@ -389,10 +399,9 @@
   }
   function freibetragHtml(fb) {
     if (!fb || !fb.freibetrag) return '';
-    return '<div class="card pad stack" style="background:var(--forest);color:#EDE7DC;border-color:var(--forest)"><span class="eyebrow" style="color:var(--sand)">Freibetrag für ' + fb.jahr + '</span>' +
-      '<p style="font-family:var(--f-display);font-size:34px;line-height:1.05;color:var(--sand)">' + eur(fb.freibetrag) + '</p>' +
-      (fb.steuerwirkungMonat ? '<p>Damit zahlen Sie voraussichtlich rund <b>' + eur(fb.steuerwirkungMonat) + '</b> weniger Lohnsteuer im Monat.</p>' : '<p>Tragen Sie Ihren Grenzsteuersatz ein, dann zeigen wir die monatliche Wirkung.</p>') +
-      '<p class="small" style="opacity:.85">Den Antrag auf Lohnsteuer-Ermäßigung stellen Sie in Mein ELSTER. Er gilt in der Regel ab dem Jahr nach dem Kauf. Mit Freibetrag ist jedes Jahr eine Steuererklärung Pflicht.</p></div>';
+    return '<div class="hero"><span class="eyebrow">Ihr Netto-Plus ab ' + fb.jahr + '</span>' +
+      (fb.steuerwirkungMonat ? '<div class="big num">+' + eur(fb.steuerwirkungMonat) + '<small>im Monat</small></div><p>Mit einem Freibetrag von <b style="color:#fff">' + eur(fb.freibetrag) + '</b> zahlen Sie voraussichtlich so viel weniger Lohnsteuer.</p>' : '<div class="big num">' + eur(fb.freibetrag) + '<small>Freibetrag</small></div><p>Tragen Sie Ihren Grenzsteuersatz ein, dann zeigen wir die monatliche Wirkung.</p>') +
+      '<p class="small muted">Den Antrag auf Lohnsteuer-Ermäßigung stellen Sie in Mein ELSTER. Er gilt in der Regel ab dem Jahr nach dem Kauf. Mit Freibetrag ist jedes Jahr eine Steuererklärung Pflicht.</p></div>';
   }
   function ergebnisHtml(r, freigegeben) {
     var a = A.akte, sd = (A.daten && A.daten.stammdaten) || {};
@@ -527,7 +536,11 @@
     try {
       var rows = q(await sb.rpc('vertrieb_akten'));
       var org = S.orgs.filter(function (o) { return o.id === S.profil.organisation_id; })[0];
-      mount('<div class="wrap stack"><div class="row" style="align-items:flex-end"><div class="stack-s"><span class="eyebrow">' + esc(org ? org.name : 'Vertrieb') + '</span><h1 class="title">Ihre Käufer</h1></div><span class="spacer"></span><a class="btn" href="#/vertrieb/neu">Käufer übergeben</a></div>' +
+      mount('<div class="wrap stack"><div class="row" style="align-items:flex-end"><div class="stack-s"><span class="eyebrow">' + esc(org ? org.name : 'Vertrieb') + '</span><h1 class="title">Ihre Käufer</h1></div><span class="spacer"></span><a class="btn gold" href="#/vertrieb/neu">+ Käufer übergeben</a></div>' +
+        (rows.length ? (function () {
+          var an = rows.filter(function (a) { return a.status !== 'eingeladen'; }).length, fe = rows.filter(function (a) { return a.status === 'erledigt'; }).length;
+          return '<div class="kpis"><div class="card kpi"><strong>' + rows.length + '</strong><span>übergeben</span></div><div class="card kpi"><strong>' + an + '</strong><span>angenommen · ' + Math.round(an / rows.length * 100) + ' %</span></div><div class="card kpi dark"><strong>' + fe + '</strong><span>erledigt</span></div></div>';
+        })() : '') +
         (rows.length ? '<div class="card tw"><table><thead><tr><th>Akte</th><th>Käufer</th><th>Wohnung</th><th>Jahr</th><th>Unterlagen</th><th>Status</th></tr></thead><tbody>' +
           rows.map(function (a) { var s = VSTAT[a.status] || [a.status, 'c-grey']; return '<tr><td class="mono small">' + esc(a.nummer) + '</td><td><b>' + esc(a.kaeufer_name) + '</b><br><span class="tiny">' + esc(a.kaeufer_email) + '</span></td><td>' + esc(a.objekt_bezeichnung) + '</td><td class="num">' + a.vz + '</td><td class="num">' + a.dokumente + '</td><td><span class="chip ' + s[1] + '">' + s[0] + '</span></td></tr>'; }).join('') + '</tbody></table></div>' :
           '<div class="card empty"><div class="ill" aria-hidden="true"></div><h2 class="h2">Noch keine Käufer übergeben</h2><p class="muted" style="max-width:46ch">Am besten direkt nach dem Notartermin. Das dauert zwei Minuten, die Unterlagen haben Sie ja schon.</p><a class="btn" href="#/vertrieb/neu">Ersten Käufer übergeben</a></div>') +
@@ -579,11 +592,11 @@
       var liste = akten.filter(function (a) { return gruppen[KTAB].indexOf(a.status) >= 0; });
       var org = S.orgs.filter(function (o) { return o.id === S.profil.organisation_id; })[0];
       mount('<div class="wrap stack"><div class="stack-s"><span class="eyebrow">' + esc(org ? org.name : 'Kanzlei') + '</span><h1 class="title">Fälle</h1></div>' +
-        '<div class="kpis"><div class="card kpi"><strong>' + zahl('pruefen') + '</strong><span>warten auf Prüfung</span></div><div class="card kpi"><strong>' + zahl('rueckfrage') + '</strong><span>Rückfrage beim Käufer</span></div><div class="card kpi"><strong>' + zahl('fertig') + '</strong><span>freigegeben</span></div><div class="card kpi"><strong>' + (schnitt ? mmss(schnitt) : '0:00') + '</strong><span>Prüfzeit im Schnitt, Minuten</span></div></div>' +
+        '<div class="kpis"><div class="card kpi dark"><strong>' + zahl('pruefen') + '</strong><span>warten auf Prüfung</span></div><div class="card kpi"><strong>' + zahl('rueckfrage') + '</strong><span>Rückfrage beim Käufer</span></div><div class="card kpi"><strong>' + zahl('fertig') + '</strong><span>freigegeben</span></div><div class="card kpi"><strong>' + (schnitt ? mmss(schnitt) : '0:00') + '</strong><span>Prüfzeit im Schnitt, Minuten</span></div></div>' +
         '<div class="card pad"><div class="tabs" role="tablist">' + [['pruefen', 'Zu prüfen'], ['rueckfrage', 'Rückfrage'], ['sonderfall', 'Sonderfälle'], ['fertig', 'Freigegeben']].map(function (t) { return '<button role="tab" type="button" data-act="ktab" data-v="' + t[0] + '" aria-selected="' + (KTAB === t[0]) + '">' + t[1] + ' <span class="muted">' + zahl(t[0]) + '</span></button>'; }).join('') + '</div>' +
         (liste.length ? '<div class="tw"><table><thead><tr><th>Akte</th><th>Käufer</th><th>Wohnung</th><th>Jahr</th><th>Seit</th><th class="r">Prüfzeit</th></tr></thead><tbody>' +
           liste.map(function (a) { return '<tr class="click" data-act="fallOeffnen" data-id="' + a.id + '" tabindex="0"><td class="mono small">' + esc(a.nummer) + '</td><td><b>' + esc(a.kaeufer_name) + '</b></td><td>' + esc(a.objekt_bezeichnung) + '</td><td class="num">' + a.vz + '</td><td class="small">' + dDE(a.updated_at) + '</td><td class="r mono small">' + (a.akte_pruefung && a.akte_pruefung.pruefzeit_sek ? mmss(a.akte_pruefung.pruefzeit_sek) : '') + '</td></tr>'; }).join('') + '</tbody></table></div>' :
-          '<div class="empty"><div class="ill" aria-hidden="true"></div><p class="muted">Hier ist gerade nichts.</p></div>') + '</div></div>', 'Fälle');
+          '<div class="empty"><div class="ill" aria-hidden="true"></div><p class="muted">Hier ist gerade nichts.</p></div>') + (liste.length ? '<p class="tiny" style="margin-top:12px">Tastatur: <b class="mono">J</b> und <b class="mono">K</b> blättern, <b class="mono">Enter</b> öffnet den Fall.</p>' : '') + '</div></div>', 'Fälle');
     } catch (e) { fehler(e); }
   }
   var K = { quittiert: [] };
@@ -753,6 +766,13 @@
     } catch (err) { fehler(err); b.disabled = false; }
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target.matches('tr.click')) e.target.click(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    var rows = $$('tr.click'); if (!rows.length) return;
+    var i = rows.indexOf(document.activeElement);
+    if (e.key === 'j' || e.key === 'ArrowDown') { e.preventDefault(); rows[Math.min(rows.length - 1, i + 1)].focus(); }
+    else if (e.key === 'k' || e.key === 'ArrowUp') { e.preventDefault(); rows[Math.max(0, i - 1)].focus(); }
+  });
 
   document.addEventListener('input', function (e) {
     var t = e.target;
