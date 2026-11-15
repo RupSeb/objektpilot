@@ -54,7 +54,17 @@
     main.innerHTML = html;
     if (titel) document.title = titel + ' · Objektpilot';
     var h = main.querySelector('h1'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
+    hochzaehlen();
     window.scrollTo(0, 0);
+  }
+  function hochzaehlen() {
+    var ruhig = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    $$('[data-zahl]').forEach(function (el) {
+      var ziel = +el.dataset.zahl; if (ruhig || !(ziel > 0)) return;
+      var t0 = null, dauer = 900;
+      function schritt(t) { if (!t0) t0 = t; var x = Math.min(1, (t - t0) / dauer), e = 1 - Math.pow(1 - x, 3); el.textContent = nf0.format(Math.round(ziel * e)) + ' €'; if (x < 1) requestAnimationFrame(schritt); }
+      el.textContent = '0 €'; requestAnimationFrame(schritt); setTimeout(function () { el.textContent = nf0.format(ziel) + ' €'; }, dauer + 150);
+    });
   }
   function laden() { main.innerHTML = '<div class="wrap narrow"><div class="stack" aria-busy="true"><div class="skel" style="width:35%"></div><div class="skel" style="height:40px;width:70%"></div><div class="skel"></div><div class="skel"></div><div class="skel" style="width:60%"></div></div></div>'; }
   function q(r) { if (r.error) throw r.error; return r.data; }
@@ -133,7 +143,10 @@
     unterlagen: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 17v-6M9.5 13.5L12 11l2.5 2.5"/>',
     person: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
     auftrag: '<path d="M12 3l2.6 1.9 3.2-.1 1 3 2.6 1.9-1 3 1 3-2.6 1.9-1 3-3.2-.1L12 21l-2.6-1.9-3.2.1-1-3L2.6 14.3l1-3-1-3 2.6-1.9 1-3 3.2.1z"/><path d="M8.5 12l2.5 2.5 4.5-4.5"/>',
-    check: '<path d="M5 12.5l4.5 4.5L19 7"/>'
+    check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
+    plus: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
+    liste: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
+    stapel: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>'
   };
   function ico(k, cls) { return '<svg class="ico' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + (IC[k] || '') + '</svg>'; }
   var ABS = [
@@ -186,7 +199,7 @@
   /* ---------- Kopf und Navigation ---------- */
   function nav() {
     var n = $('#nav'), p = S.profil, h = location.hash;
-    if (!S.session || !p) { n.innerHTML = ''; return; }
+    if (!S.session || !p) { n.innerHTML = ''; var t0 = $('#tabbar'); if (t0) t0.remove(); document.body.classList.remove('mit-tabbar'); return; }
     var links = [];
     if (p.rolle === 'kaeufer') links.push(['#/wohnungen', 'Meine Wohnungen']);
     if (p.rolle === 'vertrieb') { links.push(['#/vertrieb', 'Käufer']); links.push(['#/vertrieb/neu', 'Übergeben']); }
@@ -195,6 +208,16 @@
     n.innerHTML = links.map(function (l) { return '<a href="' + l[0] + '"' + (h === l[0] || (l[0] !== '#/' && h.indexOf(l[0]) === 0 && !(l[0] === '#/vertrieb' && h === '#/vertrieb/neu')) ? ' aria-current="page"' : '') + '>' + l[1] + '</a>'; }).join('') +
       '<span class="who" title="' + esc(p.email) + '">' + esc(p.name || p.email) + '</span><button type="button" data-act="abmelden">Abmelden</button>';
     $('#kopfZusatz').textContent = { kaeufer: 'Anlage V für Kapitalanleger', vertrieb: 'Für Vertriebe', kanzlei: 'Kanzlei', admin: 'Verwaltung' }[p.rolle] || '';
+    var la = S.letzteAkte, tabs = {
+      kaeufer: la ? [['#/akte/' + la, 'Übersicht', 'wohnung'], ['#/akte/' + la + '/unterlagen', 'Unterlagen', 'unterlagen'], ['#/wohnungen', 'Wohnungen', 'stapel'], ['#/konto', 'Konto', 'person']] : [['#/wohnungen', 'Wohnungen', 'stapel'], ['#/konto', 'Konto', 'person']],
+      vertrieb: [['#/vertrieb', 'Käufer', 'liste'], ['#/vertrieb/neu', 'Übergeben', 'plus'], ['#/konto', 'Konto', 'person']],
+      kanzlei: [['#/kanzlei', 'Fälle', 'liste'], ['#/konto', 'Konto', 'person']],
+      admin: [['#/admin', 'Verwaltung', 'hausgeld'], ['#/konto', 'Konto', 'person']]
+    }[p.rolle] || [];
+    var tb = $('#tabbar'); if (!tb) { tb = document.createElement('nav'); tb.id = 'tabbar'; tb.className = 'tabbar'; tb.setAttribute('aria-label', 'Schnellnavigation'); document.body.appendChild(tb); }
+    var aktiv = tabs.map(function (t) { return h === t[0] ? 3 : h.indexOf(t[0] + '/') === 0 ? 2 : 0; }), best = Math.max.apply(null, aktiv.concat([0]));
+    tb.innerHTML = tabs.map(function (t, j) { return '<a href="' + t[0] + '"' + (best && aktiv[j] === best ? ' aria-current="page"' : '') + '>' + ico(t[2]) + '<span>' + t[1] + '</span></a>'; }).join('');
+    document.body.classList.add('mit-tabbar');
   }
 
   /* ---------- Anmeldung ---------- */
@@ -358,7 +381,7 @@
   async function viewAkte(id) {
     laden();
     try {
-      await akteLaden(id);
+      await akteLaden(id); S.letzteAkte = id; nav();
       if (A.akte.status === 'eingeladen') { await sb.rpc('kaeufer_oeffnen', { p_akte: id }); A.akte.status = 'in_erfassung'; }
       var a = A.akte, offen = a.status === 'in_erfassung';
       var kopf = '<div class="stack-s"><span class="eyebrow">' + esc(a.nummer) + ' · Steuerjahr ' + a.vz + '</span><h1 class="title">' + esc(a.objekt_bezeichnung) + '</h1><div class="row">' + statusChip(a.status) + '</div></div>';
@@ -368,7 +391,7 @@
         var rv = rechne(A.daten, a.vz, []), plus = rv && rv.freibetrag && rv.freibetrag.steuerwirkungMonat;
         mount('<div class="wrap narrow stack">' + kopf +
           '<section class="hero" aria-label="Ihr Netto-Plus und Fortschritt"><span class="eyebrow">Ihr Netto-Plus' + (plus ? ' ab ' + rv.freibetrag.jahr : '') + '</span>' +
-          (plus ? '<div class="big num">+' + eur(plus) + '<small>im Monat, vorläufig</small></div><p class="small">So viel weniger Lohnsteuer zahlen Sie voraussichtlich mit Freibetrag. Die Kanzlei prüft die Zahl, bevor sie gilt.</p>'
+          (plus ? '<div class="big num">+<span data-zahl="' + Math.round(plus) + '">' + eur(plus) + '</span><small>im Monat, vorläufig</small></div><p class="small">So viel weniger Lohnsteuer zahlen Sie voraussichtlich mit Freibetrag. Die Kanzlei prüft die Zahl, bevor sie gilt.</p>'
             : '<div class="big">+ ? €<small>im Monat</small></div><p class="small">Sobald Wohnung, Miete und Finanzierung eingetragen sind, sehen Sie hier, wie viel mehr netto im Monat drin ist.</p>') +
           '<div class="row"><b>' + n + ' von 7 Schritten erledigt</b><span class="spacer"></span><span class="tiny">Alles wird automatisch gespeichert</span></div><div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="7" aria-valuenow="' + n + '"><i style="width:' + Math.max(3, Math.round(n / 7 * 100)) + '%"></i></div>' +
           '<a class="btn" href="#/akte/' + id + '/' + naechste.k + '">' + (n === 0 ? 'Jetzt starten' : 'Weiter mit: ' + naechste.t) + ' →</a></section>' +
@@ -422,7 +445,7 @@
   function freibetragHtml(fb) {
     if (!fb || !fb.freibetrag) return '';
     return '<div class="hero"><span class="eyebrow">Ihr Netto-Plus ab ' + fb.jahr + '</span>' +
-      (fb.steuerwirkungMonat ? '<div class="big num">+' + eur(fb.steuerwirkungMonat) + '<small>im Monat</small></div><p>Mit einem Freibetrag von <b style="color:#fff">' + eur(fb.freibetrag) + '</b> zahlen Sie voraussichtlich so viel weniger Lohnsteuer.</p>' : '<div class="big num">' + eur(fb.freibetrag) + '<small>Freibetrag</small></div><p>Tragen Sie Ihren Grenzsteuersatz ein, dann zeigen wir die monatliche Wirkung.</p>') +
+      (fb.steuerwirkungMonat ? '<div class="big num">+<span data-zahl="' + Math.round(fb.steuerwirkungMonat) + '">' + eur(fb.steuerwirkungMonat) + '</span><small>im Monat</small></div><p>Mit einem Freibetrag von <b style="color:#fff">' + eur(fb.freibetrag) + '</b> zahlen Sie voraussichtlich so viel weniger Lohnsteuer.</p>' : '<div class="big num">' + eur(fb.freibetrag) + '<small>Freibetrag</small></div><p>Tragen Sie Ihren Grenzsteuersatz ein, dann zeigen wir die monatliche Wirkung.</p>') +
       '<p class="small muted">Den Antrag auf Lohnsteuer-Ermäßigung stellen Sie in Mein ELSTER. Er gilt in der Regel ab dem Jahr nach dem Kauf. Mit Freibetrag ist jedes Jahr eine Steuererklärung Pflicht.</p></div>';
   }
   function ergebnisHtml(r, freigegeben) {
@@ -753,7 +776,9 @@
     } catch (e) { fehler(e); }
   }
   function viewKonto() {
-    mount('<div class="wrap narrow"><div class="card pad-l stack"><h1 class="h2">Ihr Konto</h1><p class="small">' + esc(S.profil.email) + '</p><button class="btn sec" data-act="abmelden">Abmelden</button></div></div>', 'Konto');
+    var rn = { kaeufer: 'Kapitalanleger', vertrieb: 'Vertrieb', kanzlei: 'Kanzlei', admin: 'Verwaltung' }[S.profil.rolle] || '';
+    mount('<div class="wrap narrow stack"><h1 class="title">Ihr Konto</h1><div class="card pad stack"><div class="row"><span class="tasks" style="display:contents"><span class="n" style="width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:var(--y);color:#111">' + ico('person') + '</span></span><span class="stack-s" style="gap:2px"><b>' + esc(S.profil.name || S.profil.email) + '</b><span class="small muted">' + esc(S.profil.email) + ' · ' + rn + '</span></span></div></div>' +
+      '<div class="row small"><a class="link" href="impressum.html">Impressum</a><a class="link" href="datenschutz.html">Datenschutz</a><span class="spacer"></span><button class="btn sec" data-act="abmelden">Abmelden</button></div></div>', 'Konto');
   }
 
   /* ---------- Hochladen ---------- */
@@ -811,6 +836,7 @@
         A.daten.erledigt = A.daten.erledigt || {}; A.daten.erledigt[k] = true;
         q(await sb.from('akte_daten').update({ eingabe: A.daten.eingabe, stammdaten: A.daten.stammdaten, fallcheck: A.daten.fallcheck, erledigt: A.daten.erledigt }).eq('akte_id', A.akte.id));
         var i = ABS.findIndex(function (x) { return x.k === k; });
+        toast('✓ ' + ABS[i].t + ' erledigt. Noch ' + Math.max(0, 7 - fortschritt()) + ' von 7.');
         var naechste = ABS.slice(i + 1).filter(function (x) { return !absFertig(x.k); })[0];
         if (A.akte.status === 'rueckfrage') { location.hash = '#/akte/' + A.akte.id; return; }
         location.hash = '#/akte/' + A.akte.id + (naechste && (naechste.k !== 'auftrag' || fortschritt() >= 7) ? '/' + naechste.k : '');

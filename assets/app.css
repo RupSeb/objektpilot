@@ -1,5 +1,6 @@
 /* Objektpilot · App-Stil. Schwarz und Gelb, kräftig, mobil zuerst. Schriften lokal, keine Drittanbieter. */
-@font-face{font-family:Geist;src:url(fonts/Geist-Variable.woff2) format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Schibsted Grotesk";src:url(fonts/SchibstedGrotesk-latin.woff2) format("woff2");font-weight:400 900;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Schibsted Grotesk";src:url(fonts/SchibstedGrotesk-latin-ext.woff2) format("woff2");font-weight:400 900;font-display:swap;unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
 @font-face{font-family:"Geist Mono";src:url(fonts/GeistMono-Variable.woff2) format("woff2");font-weight:100 900;font-display:swap}
 :root{
   /* Marke */
@@ -8,18 +9,18 @@
   /* Alte Namen, auf die neue Marke gelegt (werden im Code noch benutzt) */
   --forest:var(--black); --forest-2:var(--black-2); --sand:var(--y); --gold:var(--y); --gold-ink:var(--y-ink); --aub:var(--black);
   /* Flächen und Text */
-  --bg:#F6F5F0; --surface:#FFFFFF; --surface-2:#F1F0EA; --ink:#121212; --muted:#5F5C54; --line:#E5E2D8; --line-2:#CFCBBE;
+  --bg:#FFFFFF; --surface:#FFFFFF; --surface-2:#F3F3F3; --ink:#111111; --muted:#5B5B5B; --line:#E6E6E6; --line-2:#CFCFCF;
   --ok:#17784A; --ok-bg:#E1F3E8; --warn:#8F5A00; --warn-bg:#FFF1D1; --bad:#B42318; --bad-bg:#FDE7E4; --info:#2346A8; --info-bg:#E6ECFB;
   --focus:#121212; --shadow:0 1px 0 rgba(18,18,18,.04), 0 12px 32px -18px rgba(18,18,18,.28);
-  --f-display:"Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --f-body:"Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-display:"Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-body:"Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --f-mono:"Geist Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
   --r:20px; --r-sm:12px;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --bg:#0C0C0C; --surface:#171717; --surface-2:#1F1F1F; --ink:#F5F3EC; --muted:#A9A69C; --line:#2A2A2A; --line-2:#3A3A3A;
+    --bg:#0B0B0B; --surface:#161616; --surface-2:#1C1C1C; --ink:#F4F4F4; --muted:#A3A3A3; --line:#2A2A2A; --line-2:#3A3A3A;
     --black:#1B1B1B; --black-2:#262626; --y-ink:#FFD23F; --y-soft:#2E2610;
     --ok:#5FD39A; --ok-bg:#12291D; --warn:#FFC24D; --warn-bg:#2F2410; --bad:#FF8A7A; --bad-bg:#341815; --info:#9DB4FF; --info-bg:#161F38;
     --focus:#FFD23F; --shadow:0 1px 0 rgba(0,0,0,.4), 0 12px 32px -18px rgba(0,0,0,.8);
@@ -55,7 +56,7 @@ p{margin:0}
 .top .wrap{display:flex;align-items:center;gap:16px;min-height:64px}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none}
 .mark{width:32px;height:32px;flex:none;display:block;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'%3E%3Crect width='44' height='44' rx='12' fill='%23FFD23F'/%3E%3Cpath d='M11 23 L22 13 L33 23' fill='none' stroke='%23111' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M15 21 V31 H29 V21' fill='none' stroke='%23111' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M22 23.5 V29 M19.25 26.25 H24.75' stroke='%23111' stroke-width='2.8' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat}
-.brand b{font-weight:800;font-size:20px;letter-spacing:-.045em;line-height:1}
+.brand b{font-weight:800;font-size:20px;letter-spacing:-.03em;line-height:1}
 .brand span{font-size:12.5px;color:var(--on-black-2);border-left:1px solid #3A3A3A;padding-left:10px}
 .nav{display:flex;gap:4px;margin-left:auto;align-items:center}
 .nav a,.nav button{background:none;border:0;padding:9px 14px;border-radius:999px;text-decoration:none;font-size:14.5px;font-weight:500;color:var(--on-black-2)}
@@ -74,7 +75,8 @@ footer.foot .wrap{display:flex;gap:18px;flex-wrap:wrap}
 footer.foot a{color:var(--muted)}
 
 /* Karten, Knöpfe */
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.card{background:var(--surface-2);border:0;border-radius:var(--r)}
+.card .card{background:var(--surface)}
 .pad{padding:22px}
 .pad-l{padding:32px}
 @media (max-width:560px){.pad-l{padding:22px}.pad{padding:18px}}
@@ -114,7 +116,7 @@ footer.foot a{color:var(--muted)}
 .fokus .choice{grid-template-columns:1fr;gap:12px;margin-top:6px}
 .fokus .choice button{min-height:68px;font-size:17px;padding:16px 20px}
 .fokus .note{font-size:15.5px;padding:18px}
-.title{font-weight:800;font-size:clamp(32px,5.2vw,48px);letter-spacing:-.045em;line-height:1.02}
+.title{font-weight:800;font-size:clamp(32px,5.2vw,48px);letter-spacing:-.03em;line-height:1.04}
 .h2{font-weight:750;font-size:clamp(24px,3.4vw,30px);letter-spacing:-.035em}
 .h3{font-size:17px;font-weight:700;letter-spacing:-.015em}
 .lead{font-size:17.5px;color:var(--muted);max-width:60ch}
@@ -181,8 +183,8 @@ details.help p{margin-top:8px;color:var(--ink);background:var(--y-soft);border-r
 
 /* Aufgabenliste als Karten */
 .tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
-.tasks li{background:var(--surface);border:1px solid var(--line);border-radius:18px;transition:border-color .15s,transform .12s,box-shadow .15s}
-.tasks li:has(a:hover){border-color:var(--ink);transform:translateY(-1px);box-shadow:var(--shadow)}
+.tasks li{background:var(--surface-2);border-radius:18px;transition:background .15s,transform .12s}
+.tasks li:has(a:hover){background:var(--y-soft);transform:translateY(-1px)}
 .tasks a,.tasks .dis{display:flex;align-items:center;gap:14px;padding:16px 18px;text-decoration:none;flex-wrap:wrap}
 .tasks .n{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-family:var(--f-mono);font-weight:600;font-size:14px;background:var(--y-soft);color:#111;flex:none}
 @media (prefers-color-scheme: dark){.tasks .n{color:var(--y)}}
@@ -230,7 +232,7 @@ details.help p{margin-top:8px;color:var(--ink);background:var(--y-soft);border-r
 /* Tabellen */
 .tw{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:14.5px}
-th{text-align:left;font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{text-align:left;font-size:13px;color:var(--muted);font-weight:600;padding:12px 14px;border-bottom:1px solid var(--line-2);white-space:nowrap}
 td{padding:14px;border-bottom:1px solid var(--line);vertical-align:top}
 .card > .tw > table th:first-child,.card > .tw > table td:first-child{padding-left:22px}
 td.r,th.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -240,7 +242,7 @@ tr.click:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
 tr.sum td{font-weight:750;background:var(--surface-2)}
 tr:last-child td{border-bottom:0}
 .zl{font-family:var(--f-mono);font-size:12px;color:var(--muted);width:48px}
-.rw{font-size:12.5px;color:var(--muted);font-family:var(--f-mono);margin-top:2px}
+.rw{font-size:12.5px;color:var(--muted);margin-top:2px}
 
 /* Kanzlei */
 .split{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:20px;align-items:start}
@@ -251,7 +253,7 @@ tr:last-child td{border-bottom:0}
 .hint.info{background:var(--info-bg);border-color:var(--info)}
 .hint.ok{background:var(--ok-bg);border-color:var(--ok)}
 .hint b{font-weight:700}
-.hint .rg{font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+.hint .rg{font-size:12px;color:var(--muted)}
 .timer{font-family:var(--f-mono);font-size:13px;font-weight:600;background:var(--black);color:var(--y);padding:6px 14px;border-radius:99px}
 .tabs{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding:4px;background:var(--surface-2);border-radius:14px;width:max-content;max-width:100%}
 .tabs button{border:0;background:none;padding:9px 16px;font-weight:600;color:var(--muted);border-radius:10px;white-space:nowrap}
@@ -330,3 +332,19 @@ main .wrap > *{animation:rein .35s cubic-bezier(.2,.8,.2,1) both}
   .hero .big{color:#000}
   .wrap{max-width:none;padding:0}
 }
+
+/* Tab-Leiste unten am Handy */
+.tabbar{display:none}
+@media (max-width:640px){
+  body.mit-tabbar .nav{display:none}
+  body.mit-tabbar main{padding-bottom:110px}
+  body.mit-tabbar footer.foot{padding-bottom:96px}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))}
+  .tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;border-radius:14px;text-decoration:none;font-size:11.5px;font-weight:600;color:var(--muted)}
+  .tabbar a .ico{width:24px;height:24px}
+  .tabbar a[aria-current="page"]{color:var(--ink)}
+  .tabbar a[aria-current="page"] .ico{background:var(--y);color:#111;border-radius:10px;padding:3px;width:44px;box-sizing:border-box}
+  body.mit-tabbar .savebar{bottom:64px}
+}
+body.mit-tabbar .brand b{display:inline}
+.hero .big small{font-variant-numeric:normal}
