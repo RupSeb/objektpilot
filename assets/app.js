@@ -45,6 +45,8 @@
     if (/expired|invalid/i.test(m) && /otp|token|code/i.test(m)) return 'Der Code ist abgelaufen oder falsch. Fordern Sie einfach einen neuen an.';
     if (/Keine Berechtigung/.test(m)) return 'Dafür fehlt Ihnen die Berechtigung.';
     if (/fetch|network/i.test(m)) return 'Keine Verbindung. Prüfen Sie Ihr Internet und versuchen Sie es erneut.';
+    if (/sending.*email|smtp|mail/i.test(m)) return 'Die E-Mail mit Ihrem Code konnte gerade nicht verschickt werden. Bitte versuchen Sie es in ein paar Minuten erneut oder schreiben Sie an ' + ((window.OP_CONFIG && OP_CONFIG.kontakt) || 'uns') + '.';
+    if (/\b(error|failed|unable|invalid|not|unexpected)\b/i.test(m)) return 'Da ist etwas schiefgegangen. Bitte versuchen Sie es erneut.';
     return m;
   }
   function debounce(fn, ms) { var t; return function () { var a = arguments, s = this; clearTimeout(t); t = setTimeout(function () { fn.apply(s, a); }, ms); }; }
