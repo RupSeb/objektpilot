@@ -124,6 +124,18 @@
       { p: 'eingabe.personen.grenzsteuersatz', l: 'Ihr Grenzsteuersatz', t: 'pct', h: 'Nur für die Schätzung Ihrer monatlichen Ersparnis. Bei rund 60.000 € Jahresbrutto sind es meist um 40 %. Leer lassen geht auch.' }
     ]
   };
+  var IC = {
+    fallcheck: '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>',
+    wohnung: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+    miete: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9"/><path d="M17 6l3 3"/><path d="M15 8l2 2"/>',
+    finanzierung: '<path d="M3 10l9-6 9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 21h18"/>',
+    hausgeld: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1"/>',
+    unterlagen: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 17v-6M9.5 13.5L12 11l2.5 2.5"/>',
+    person: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+    auftrag: '<path d="M12 3l2.6 1.9 3.2-.1 1 3 2.6 1.9-1 3 1 3-2.6 1.9-1 3-3.2-.1L12 21l-2.6-1.9-3.2.1-1-3L2.6 14.3l1-3-1-3 2.6-1.9 1-3 3.2.1z"/><path d="M8.5 12l2.5 2.5 4.5-4.5"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7"/>'
+  };
+  function ico(k, cls) { return '<svg class="ico' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + (IC[k] || '') + '</svg>'; }
   var ABS = [
     { k: 'fallcheck', t: 'Passt Ihr Fall?', s: 'Vier kurze Fragen, eine Minute' },
     { k: 'wohnung', t: 'Wohnung und Kauf', s: 'Kaufpreis, Übergabe, Gebäudeanteil' },
@@ -269,7 +281,8 @@
     } catch (e) { fehler(e); }
   }
   function route() {
-    stopTimer();
+    stopTimer(); FK = null;
+    if (route._h !== location.hash) { viewAbschnitt._alle = false; route._h = location.hash; }
     if (!S.session) { viewAnmelden(); return; }
     var h = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean), r = S.profil.rolle;
     nav();
@@ -361,7 +374,7 @@
           '<a class="btn" href="#/akte/' + id + '/' + naechste.k + '">' + (n === 0 ? 'Jetzt starten' : 'Weiter mit: ' + naechste.t) + ' →</a></section>' +
           '<ol class="tasks">' + ABS.map(function (x, i) {
             var fertig = absFertig(x.k), gesperrt = x.k === 'auftrag' && !alleFertig;
-            var inner = '<span class="n" aria-hidden="true">' + (fertig ? '✓' : i + 1) + '</span><span class="t"><b>' + x.t + '</b><span>' + x.s + '</span></span>' + (fertig ? '<span class="chip c-ok">Erledigt</span>' : gesperrt ? '<span class="chip c-grey">Zuerst Schritte 1 bis 7</span>' : '<span class="chip c-grey">Offen</span>');
+            var inner = '<span class="n" aria-hidden="true">' + ico(fertig ? 'check' : x.k) + '</span><span class="t"><b>' + x.t + '</b><span>' + x.s + '</span></span>' + (fertig ? '<span class="chip c-ok">Erledigt</span>' : gesperrt ? '<span class="chip c-grey">Zuerst Schritte 1 bis 7</span>' : '<span class="chip c-grey">Offen</span>');
             return '<li class="' + (fertig ? 'done' : '') + '">' + (gesperrt ? '<span class="dis">' + inner + '</span>' : '<a href="#/akte/' + id + '/' + x.k + '">' + inner + '</a>') + '</li>';
           }).join('') + '</ol>' +
           '<div class="note info"><span class="ic" aria-hidden="true">i</span><span><b>Wer sieht was?</b>Ihre Angaben sehen nur Sie und die Kanzlei, die Sie wählen.' + (a.vertrieb_id ? ' Ihr Vertrieb sieht keine Steuerdaten.' : '') + '</span></div></div>', a.objekt_bezeichnung);
@@ -440,6 +453,49 @@
   }
 
   /* Abschnitte */
+  var FK = null;
+  function fokusLeer(el) {
+    if (el.matches('fieldset')) return !el.querySelector('[aria-pressed="true"]');
+    return $$('[data-p]', el).some(function (inp) { return !inp.value; });
+  }
+  function fokusInit(k, nachAuswahl) {
+    FK = null;
+    if (k === 'unterlagen' || k === 'auftrag' || viewAbschnitt._alle) return;
+    var box = $('#fAbs > .stack'); if (!box) return;
+    var steps = Array.prototype.filter.call(box.children, function (el) { return el.matches('.field, .grid2, fieldset, .note'); });
+    if (steps.length < 2) return;
+    var start = steps.findIndex(fokusLeer); if (start < 0) start = nachAuswahl ? steps.length - 1 : 0;
+    FK = { k: k, steps: steps, i: start };
+    box.classList.add('fokus');
+    var segs = document.createElement('div'); segs.className = 'fsegs'; segs.setAttribute('aria-hidden', 'true');
+    segs.innerHTML = steps.map(function () { return '<i></i>'; }).join(''); box.parentNode.insertBefore(segs, box);
+    var bar = $('.savebar .inner');
+    if (bar && !$('#fWeiter')) {
+      bar.insertAdjacentHTML('afterbegin', '<button class="btn sec" type="button" data-act="fZurueck" id="fZurueck">Zurück</button><button class="btn gold" type="button" data-act="fWeiter" id="fWeiter">Weiter</button>');
+      var orig = $('[data-act="absWeiter"]'); if (orig) orig.classList.add('fk-aus'); $$('.savebar .btn.ghost').forEach(function (x) { x.classList.add('fk-aus'); });
+      bar.insertAdjacentHTML('beforeend', '<button class="link small" type="button" data-act="fAlle">Alle Fragen auf einmal</button>');
+    }
+    fokusZeigen(!nachAuswahl);
+  }
+  function fokusZeigen(fokus) {
+    if (!FK) return;
+    FK.steps.forEach(function (el, j) { el.classList.toggle('fk-aus', j !== FK.i); });
+    $$('.fsegs i').forEach(function (el, j) { el.className = j < FK.i ? 'd' : j === FK.i ? 'now' : ''; });
+    var letzte = FK.i >= FK.steps.length - 1, w = $('#fWeiter'), z = $('#fZurueck');
+    if (w) w.textContent = letzte ? 'Speichern und weiter' : 'Weiter';
+    if (z) z.disabled = FK.i === 0;
+    var cur = FK.steps[FK.i]; cur.classList.remove('fk-rein'); void cur.offsetWidth; cur.classList.add('fk-rein');
+    if (fokus) { var f = cur.querySelector('input,select,button'); if (f) f.focus({ preventScroll: true }); }
+  }
+  function fokusWeiter() {
+    if (!FK) return;
+    var cur = FK.steps[FK.i], ok = true;
+    $$('[data-p]', cur).forEach(function (inp) { if (!pruefeFeld(inp, true).ok) ok = false; });
+    if (cur.matches('fieldset') && fokusLeer(cur)) { toast('Bitte wählen Sie eine Antwort.', true); return; }
+    if (!ok) { var e = cur.querySelector('[aria-invalid="true"]'); if (e) e.focus(); return; }
+    if (FK.i >= FK.steps.length - 1) { var orig = $('[data-act="absWeiter"]'); if (orig) orig.click(); return; }
+    FK.i++; fokusZeigen(true); window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
   var aktAbs = null;
   async function viewAbschnitt(id, k) {
     laden();
@@ -466,8 +522,9 @@
       }[k];
       var weiter = k === 'auftrag' ? '' : '<div class="savebar noprint"><div class="inner"><button class="btn" type="button" data-act="absWeiter" data-k="' + k + '">Speichern und weiter</button><a class="btn ghost" href="#/akte/' + id + '">Zur Übersicht</a><span class="spacer"></span><span class="saved" id="saved" aria-live="polite"></span></div></div>';
       mount('<div class="wrap narrow stack"><a class="link small noprint" href="#/akte/' + id + '">← ' + esc(a.objekt_bezeichnung) + '</a>' +
-        '<div class="stack-s"><span class="eyebrow">Schritt ' + (i + 1) + ' von 8</span><h1 class="title">' + abs.t + '</h1>' + (intro ? '<p class="lead">' + intro + '</p>' : '') + '</div>' +
+        '<div class="stack-s"><span class="eyebrow abs-kopf">' + ico(k) + 'Schritt ' + (i + 1) + ' von 8</span><h1 class="title">' + abs.t + '</h1>' + (intro ? '<p class="lead">' + intro + '</p>' : '') + '</div>' +
         '<div id="errsum"></div><form class="stack" id="fAbs" novalidate onsubmit="return false">' + body + '</form>' + weiter + '</div>', abs.t);
+      fokusInit(k);
     } catch (e) { fehler(e); }
   }
   function fallcheckHtml() {
@@ -723,6 +780,9 @@
     var b = e.target.closest('[data-act]'); if (!b || b.tagName === 'INPUT') return;
     var act = b.dataset.act;
     try {
+      if (act === 'fWeiter') { fokusWeiter(); return; }
+      if (act === 'fZurueck') { if (FK && FK.i > 0) { FK.i--; fokusZeigen(true); } return; }
+      if (act === 'fAlle') { viewAbschnitt._alle = true; route(); return; }
       if (act === 'aliasKopieren') { try { await navigator.clipboard.writeText(b.dataset.v); toast('Kopiert: ' + b.dataset.v); } catch (x) { toast(b.dataset.v); } return; }
       if (act === 'abmelden') { stopTimer(); await sb.auth.signOut(); A = { akte: null, daten: null, docs: [], msgs: [], pruefung: null, mandat: null }; location.hash = '#/'; boot(); return; }
       if (act === 'andereMail') { $('#authBox').innerHTML = authSchritt1(''); $('#mail').focus(); return; }
@@ -733,7 +793,10 @@
         set(A.daten, 'eingabe.objekt.nutzung', c.nutzung === 'fewo' ? 'fewo' : 'dauer');
         set(A.daten, 'eingabe.objekt.anAngehoerige', c.nutzung === 'ang');
         set(A.daten, 'eingabe.objekt.denkmal', c.art === 'denkmal');
-        $('#fAbs').innerHTML = fallcheckHtml(); var nb = $('[data-k="' + b.dataset.k + '"][data-v="' + b.dataset.v + '"]'); if (nb) nb.focus();
+        var vorher = FK ? FK.i : 0;
+        $('#fAbs').innerHTML = fallcheckHtml(); $$('.fsegs').forEach(function (x) { x.remove(); });
+        fokusInit('fallcheck', true);
+        if (FK) { FK.i = vorher; fokusZeigen(false); var nb = $('[data-k="' + b.dataset.k + '"][data-v="' + b.dataset.v + '"]'); if (nb) nb.focus(); setTimeout(function () { if (FK && FK.i === vorher && FK.i < FK.steps.length - 1) { FK.i++; fokusZeigen(true); } }, 280); }
         speichern(); return;
       }
       if (act === 'absWeiter') {
@@ -782,6 +845,9 @@
     } catch (err) { fehler(err); b.disabled = false; }
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target.matches('tr.click')) e.target.click(); });
+  document.addEventListener('keydown', function (e) {
+    if (FK && e.key === 'Enter' && e.target.matches('#fAbs input')) { e.preventDefault(); fokusWeiter(); }
+  });
   document.addEventListener('keydown', function (e) {
     if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
     var rows = $$('tr.click'); if (!rows.length) return;
