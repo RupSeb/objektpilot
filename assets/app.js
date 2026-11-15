@@ -126,7 +126,7 @@
   };
   var ABS = [
     { k: 'fallcheck', t: 'Passt Ihr Fall?', s: 'Vier kurze Fragen, eine Minute' },
-    { k: 'wohnung', t: 'Wohnung und Kauf', s: 'Vieles hat Ihr Vertrieb schon eingetragen' },
+    { k: 'wohnung', t: 'Wohnung und Kauf', s: 'Kaufpreis, Übergabe, Gebäudeanteil' },
     { k: 'miete', t: 'Mieteinnahmen', s: 'Kaltmiete und Nebenkosten' },
     { k: 'finanzierung', t: 'Finanzierung', s: 'Darlehen und Zinsen' },
     { k: 'hausgeld', t: 'Hausgeld', s: 'Aus dem Wirtschaftsplan der Verwaltung' },
@@ -176,7 +176,7 @@
     var n = $('#nav'), p = S.profil, h = location.hash;
     if (!S.session || !p) { n.innerHTML = ''; return; }
     var links = [];
-    if (p.rolle === 'kaeufer') links.push(['#/', 'Meine Wohnungen']);
+    if (p.rolle === 'kaeufer') links.push(['#/wohnungen', 'Meine Wohnungen']);
     if (p.rolle === 'vertrieb') { links.push(['#/vertrieb', 'Käufer']); links.push(['#/vertrieb/neu', 'Übergeben']); }
     if (p.rolle === 'kanzlei') links.push(['#/kanzlei', 'Fälle']);
     if (p.rolle === 'admin') links.push(['#/admin', 'Verwaltung']);
@@ -191,7 +191,7 @@
     mount('<div class="auth">' +
       '<section class="side" aria-label="Über Objektpilot"><span class="eyebrow">Anlage V für Kapitalanleger</span><h1>Mehr netto<br>aus Ihrer Wohnung.<br><em>Von der Kanzlei geprüft.</em></h1>' +
       '<div class="demo" aria-hidden="true"><span>Beispiel: Ihr Netto-Plus mit Freibetrag</span><strong>+551 €</strong><small>im Monat, vorläufig</small></div>' +
-      '<ul><li>Die Daten aus Ihrem Kauf sind schon da. Sie prüfen und ergänzen nur.</li><li>Eine Steuerkanzlei prüft alles und gibt die Anlage V frei.</li><li>Server in Frankfurt. Ihr Vertrieb sieht keine Steuerdaten.</li></ul></section>' +
+      '<ul><li>Kam die Wohnung über einen Vertrieb, sind die Kaufdaten schon da. Sonst tragen Sie sie in etwa 15 Minuten selbst ein.</li><li>Eine Steuerkanzlei prüft alles und gibt die Anlage V frei.</li><li>Server in Frankfurt. Ein Vertrieb sieht keine Steuerdaten.</li></ul></section>' +
       '<section class="form"><div class="stack" id="authBox">' + authSchritt1(mail) + '</div></section></div>', 'Anmelden');
   }
   function authSchritt1(mail) {
@@ -286,13 +286,22 @@
     try {
       await sb.rpc('kaeufer_verknuepfen');
       var akten = q(await sb.from('akte').select('id,nummer,objekt_bezeichnung,vz,status,updated_at').order('created_at', { ascending: false }));
-      if (akten.length === 1 && !viewKaeuferStart._liste) { location.replace('#/akte/' + akten[0].id); return; }
+      if (akten.length === 1 && !viewKaeuferStart._liste && location.hash !== '#/wohnungen') { location.replace('#/akte/' + akten[0].id); return; }
+      var jahr = new Date().getFullYear();
+      var neuForm = '<form class="card pad stack" id="fNeuAkte" novalidate><h2 class="h3">' + (akten.length ? 'Weitere Wohnung anlegen' : 'Wohnung anlegen') + '</h2>' +
+        '<div class="grid2"><div class="field"><label for="n_obj">Wohnung</label><div class="inp"><input id="n_obj" required placeholder="Leipzig, Musterstraße 12, WE 7" autocomplete="off"></div><span class="errmsg" id="n_obj_e" aria-live="polite"></span></div>' +
+        '<div class="field"><label for="n_vz">Steuerjahr</label><div class="inp"><select id="n_vz">' + [jahr - 2, jahr - 1, jahr].map(function (y) { return '<option' + (y === jahr ? ' selected' : '') + '>' + y + '</option>'; }).join('') + '</select></div></div></div>' +
+        '<button class="btn gold" type="submit">Anlegen und loslegen →</button></form>';
       if (!akten.length) {
-        mount('<div class="wrap narrow"><div class="card empty"><div class="ill" aria-hidden="true"></div><h1 class="h2">Noch keine Wohnung zugeordnet</h1><p class="muted" style="max-width:46ch">Ihre Wohnung erscheint hier, sobald Ihr Vertrieb sie mit Ihrer E-Mail-Adresse <b>' + esc(S.profil.email) + '</b> übergeben hat. Haben Sie eine andere Adresse angegeben? Melden Sie sich mit dieser an.</p><p class="small">Fragen? <a href="mailto:' + C.kontakt + '">' + C.kontakt + '</a></p></div></div>', 'Meine Wohnungen');
+        mount('<div class="wrap narrow stack"><section class="hero"><span class="eyebrow">Willkommen</span><h1 class="title" style="color:#fff">Ihre Anlage V,<br><span style="color:var(--y)">von der Kanzlei geprüft.</span></h1>' +
+          '<p>Legen Sie Ihre Wohnung an und tragen Sie die Zahlen aus Kaufvertrag, Mietvertrag und Darlehensvertrag ein. Das dauert etwa 15 Minuten. Danach prüft eine Steuerkanzlei alles zum Festpreis und gibt die Anlage V frei.</p>' +
+          '<div class="row small"><span>✓ Netto-Plus sofort sichtbar</span><span>✓ Festpreis ab 249 €</span><span>✓ Server in Frankfurt</span></div></section>' + neuForm +
+          '<div class="note info"><span class="ic" aria-hidden="true">i</span><span><b>Kommt Ihre Wohnung über einen Vertrieb?</b>Dann müssen Sie nichts anlegen. Sie erscheint hier automatisch, sobald der Vertrieb sie mit <b>' + esc(S.profil.email) + '</b> übergeben hat.</span></div></div>', 'Meine Wohnungen');
         return;
       }
       mount('<div class="wrap narrow stack"><span class="eyebrow">Meine Wohnungen</span><h1 class="title">Ihre Anlagen V</h1><ul class="tasks">' +
-        akten.map(function (a) { return '<li><a href="#/akte/' + a.id + '"><span class="n" aria-hidden="true">' + String(a.vz).slice(2) + '</span><span class="t"><b>' + esc(a.objekt_bezeichnung) + '</b><span>Steuerjahr ' + a.vz + ' · ' + a.nummer + '</span></span>' + statusChip(a.status) + '</a></li>'; }).join('') + '</ul></div>', 'Meine Wohnungen');
+        akten.map(function (a) { return '<li><a href="#/akte/' + a.id + '"><span class="n" aria-hidden="true">' + String(a.vz).slice(2) + '</span><span class="t"><b>' + esc(a.objekt_bezeichnung) + '</b><span>Steuerjahr ' + a.vz + ' · ' + a.nummer + '</span></span>' + statusChip(a.status) + '</a></li>'; }).join('') + '</ul>' +
+        '<details class="help"><summary>Weitere Wohnung oder weiteres Steuerjahr anlegen</summary><div style="margin-top:10px">' + neuForm + '</div></details></div>', 'Meine Wohnungen');
     } catch (e) { fehler(e); }
   }
   var STATUS = {
@@ -355,7 +364,7 @@
             var inner = '<span class="n" aria-hidden="true">' + (fertig ? '✓' : i + 1) + '</span><span class="t"><b>' + x.t + '</b><span>' + x.s + '</span></span>' + (fertig ? '<span class="chip c-ok">Erledigt</span>' : gesperrt ? '<span class="chip c-grey">Zuerst Schritte 1 bis 7</span>' : '<span class="chip c-grey">Offen</span>');
             return '<li class="' + (fertig ? 'done' : '') + '">' + (gesperrt ? '<span class="dis">' + inner + '</span>' : '<a href="#/akte/' + id + '/' + x.k + '">' + inner + '</a>') + '</li>';
           }).join('') + '</ol>' +
-          '<div class="note info"><span class="ic" aria-hidden="true">i</span><span><b>Wer sieht was?</b>Ihre Angaben sehen nur Sie und die Kanzlei, die Sie wählen. Ihr Vertrieb sieht keine Steuerdaten.</span></div></div>', a.objekt_bezeichnung);
+          '<div class="note info"><span class="ic" aria-hidden="true">i</span><span><b>Wer sieht was?</b>Ihre Angaben sehen nur Sie und die Kanzlei, die Sie wählen.' + (a.vertrieb_id ? ' Ihr Vertrieb sieht keine Steuerdaten.' : '') + '</span></div></div>', a.objekt_bezeichnung);
         return;
       }
       mount('<div class="wrap narrow stack">' + kopf + statusInhalt() + '</div>', a.objekt_bezeichnung);
@@ -449,7 +458,7 @@
         k === 'person' ? '<div class="grid2">' + F.person.slice(0, 2).map(function (f) { return feldHtml(f, A.daten); }).join('') + '</div>' + feldHtml(F.person[2], A.daten) + feldHtml(F.person[3], A.daten) + '<div class="grid2">' + F.person.slice(4, 6).map(function (f) { return feldHtml(f, A.daten); }).join('') + '</div>' + F.person.slice(6).map(function (f) { return feldHtml(f, A.daten); }).join('') :
           F[k].map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('')) + '</div>';
       var intro = {
-        wohnung: 'Die meisten Angaben stehen im Kaufvertrag. Was Ihr Vertrieb schon eingetragen hat, ist markiert. Bitte prüfen Sie es kurz.',
+        wohnung: 'Die meisten Angaben stehen im Kaufvertrag.' + (a.vertrieb_id ? ' Was Ihr Vertrieb schon eingetragen hat, ist markiert. Bitte prüfen Sie es kurz.' : ' Unter jedem Feld steht, wo Sie die Zahl finden.'),
         miete: 'Laut Mietvertrag. Gerechnet wird ab dem Übergang der Wohnung.',
         finanzierung: 'Laut Darlehensvertrag. Tilgung spielt für die Steuer keine Rolle, nur die Zinsen.',
         hausgeld: 'Alle Werte stehen im Wirtschaftsplan Ihrer Hausverwaltung. Gezählt wird, was Sie im Jahr tatsächlich gezahlt haben.',
@@ -505,7 +514,7 @@
         (w === 'eigen' ? '<label class="check"><input type="checkbox" id="c1"> <span>Ich möchte die vorbereitete Anlage V und meine Unterlagen als Datenpaket für meinen Steuerberater.</span></label>' :
           '<details class="help" open><summary>Auftrag und Vergütung</summary><p>' + esc(mandatText) + '</p></details><label class="check"><input type="checkbox" id="c1"> <span>' + (sf ? 'Ich bitte um ein Angebot zu den genannten Bedingungen.' : 'Ich erteile den Auftrag zu diesen Bedingungen.') + '</span></label>') +
         '<label class="check"><input type="checkbox" id="c2"> <span>Ich habe die <a href="datenschutz.html" target="_blank" rel="noopener">Datenschutzhinweise</a> gelesen.</span></label>' +
-        '<label class="check"><input type="checkbox" id="c3"> <span>Mein Vertrieb darf sehen, dass der Steuerservice läuft. <span class="muted">Freiwillig, ohne Zahlen und ohne Kanzleiname.</span></span></label>' +
+        (A.akte.vertrieb_id ? '<label class="check"><input type="checkbox" id="c3"> <span>Mein Vertrieb darf sehen, dass der Steuerservice läuft. <span class="muted">Freiwillig, ohne Zahlen und ohne Kanzleiname.</span></span></label>' : '') +
         '<button class="btn gold block" type="button" data-act="beauftragen">' + (w === 'eigen' ? 'Datenpaket erstellen' : sf ? 'Angebot anfordern' : 'Verbindlich beauftragen') + '</button></div>' : '') + '</div>';
   }
 
@@ -671,7 +680,13 @@
       S.orgs = orgs;
       var oname = function (id) { var o = orgs.filter(function (x) { return x.id === id; })[0]; return o ? o.name : '–'; };
       var akten = ueb.filter(function (u) { return u.status; }).reduce(function (s, u) { return s + u.anzahl; }, 0);
-      mount('<div class="wrap stack"><div class="stack-s"><span class="eyebrow">Betrieb</span><h1 class="title">Verwaltung</h1><p class="muted">Hier legen Sie Vertriebe und Kanzleien an und laden Mitarbeiter ein. Steuerdaten sind hier nicht sichtbar.</p></div>' +
+      var em = String(S.profil.email || ''), at = em.indexOf('@'), alias = function (r) { return at > 0 ? em.slice(0, at).split('+')[0] + '+' + r + em.slice(at) : r; };
+      var rollen = [['kaeufer', 'Kapitalanleger', 'Wohnung anlegen, Daten eintragen, Netto-Plus sehen, Kanzlei beauftragen.'], ['vertrieb', 'Vertrieb', 'Käufer übergeben und sehen, wer die Einladung angenommen hat.'], ['kanzlei', 'Kanzlei', 'Fälle prüfen, Rückfragen stellen, Anlage V freigeben.']];
+      var probe = '<section class="hero"><span class="eyebrow">Ansichten ausprobieren</span><h2 class="h2" style="color:#fff">So sieht es für Ihre Kunden aus</h2>' +
+        '<p class="small">Öffnen Sie ein privates Browserfenster und melden Sie sich mit einer dieser Adressen an. Die Codes landen in Ihrem normalen Postfach. Vertrieb und Kanzlei fragen beim ersten Mal nach der Authenticator-App.</p>' +
+        '<div class="grid3">' + rollen.map(function (r) { return '<div class="stack-s" style="background:#222;border-radius:16px;padding:16px"><b style="color:var(--y)">' + r[1] + '</b><span class="small">' + r[2] + '</span><code class="mono tiny" style="color:#fff;word-break:break-all">' + esc(alias(r[0])) + '</code><button class="btn sm" type="button" data-act="aliasKopieren" data-v="' + esc(alias(r[0])) + '">Adresse kopieren</button></div>'; }).join('') + '</div>' +
+        '<p class="tiny">Vertrieb- und Kanzlei-Adressen funktionieren nur, wenn sie unten im Team eingeladen sind. Jede neue Adresse ist sonst automatisch Kapitalanleger.</p></section>';
+      mount('<div class="wrap stack"><div class="stack-s"><span class="eyebrow">Betrieb</span><h1 class="title">Verwaltung</h1><p class="muted">Hier legen Sie Vertriebe und Kanzleien an und laden Mitarbeiter ein. Steuerdaten sind hier nicht sichtbar.</p></div>' + probe +
         '<div class="kpis"><div class="card kpi"><strong>' + orgs.filter(function (o) { return o.typ === 'vertrieb'; }).length + '</strong><span>Vertriebe</span></div><div class="card kpi"><strong>' + orgs.filter(function (o) { return o.typ === 'kanzlei'; }).length + '</strong><span>Kanzleien</span></div><div class="card kpi"><strong>' + team.length + '</strong><span>Teammitglieder</span></div></div>' +
         '<div class="split"><section class="card pad stack"><h2 class="h3">Organisationen</h2><div class="tw"><table><thead><tr><th>Name</th><th>Typ</th><th>Ort</th></tr></thead><tbody>' + orgs.map(function (o) { return '<tr><td><b>' + esc(o.name) + '</b></td><td>' + esc(o.typ) + '</td><td class="small">' + esc(o.anschrift || '') + '</td></tr>'; }).join('') + '</tbody></table></div>' +
         '<form class="stack" id="fOrg"><h3 class="h3">Neue Organisation</h3><div class="grid2"><div class="field"><label for="o_name">Name</label><div class="inp"><input id="o_name" required></div></div><div class="field"><label for="o_typ">Typ</label><div class="inp"><select id="o_typ"><option value="vertrieb">Vertrieb</option><option value="kanzlei">Kanzlei</option><option value="hausverwaltung">Hausverwaltung</option></select></div></div></div><div class="field"><label for="o_ort">Anschrift oder Ort</label><div class="inp"><input id="o_ort"></div></div><button class="btn sec" type="submit">Anlegen</button></form></section>' +
@@ -708,6 +723,7 @@
     var b = e.target.closest('[data-act]'); if (!b || b.tagName === 'INPUT') return;
     var act = b.dataset.act;
     try {
+      if (act === 'aliasKopieren') { try { await navigator.clipboard.writeText(b.dataset.v); toast('Kopiert: ' + b.dataset.v); } catch (x) { toast(b.dataset.v); } return; }
       if (act === 'abmelden') { stopTimer(); await sb.auth.signOut(); A = { akte: null, daten: null, docs: [], msgs: [], pruefung: null, mandat: null }; location.hash = '#/'; boot(); return; }
       if (act === 'andereMail') { $('#authBox').innerHTML = authSchritt1(''); $('#mail').focus(); return; }
       if (act === 'neuerCode') { var m = sessionStorageGet('op_mail'); await codeSenden(m); toast('Neuer Code ist unterwegs.'); countdown(); return; }
@@ -742,7 +758,7 @@
         if (!$('#c1').checked || !$('#c2').checked) { toast('Bitte bestätigen Sie den Auftrag und die Datenschutzhinweise.', true); return; }
         b.disabled = true; b.textContent = 'Wird gesendet …';
         var w = A.daten._wahl;
-        var st = q(await sb.rpc('kaeufer_beauftragen', { p_akte: A.akte.id, p_wahl: w === 'eigen' ? 'eigen' : 'kanzlei', p_kanzlei: w === 'eigen' ? null : w, p_status_an_vertrieb: $('#c3').checked, p_text_version: C.textVersionMandat }));
+        var st = q(await sb.rpc('kaeufer_beauftragen', { p_akte: A.akte.id, p_wahl: w === 'eigen' ? 'eigen' : 'kanzlei', p_kanzlei: w === 'eigen' ? null : w, p_status_an_vertrieb: !!($('#c3') && $('#c3').checked), p_text_version: C.textVersionMandat }));
         toast(st === 'eigener_stb' ? 'Ihr Datenpaket ist bereit.' : st === 'sonderfall' ? 'Anfrage an die Kanzlei gesendet.' : 'Auftrag erteilt. Die Kanzlei prüft jetzt.');
         A.akte = null; location.hash = '#/akte/' + A.daten.akte_id; return;
       }
@@ -839,6 +855,12 @@
         var v = await sb.auth.mfa.challengeAndVerify({ factorId: fid, code: c });
         if (v.error) { $('#mfa_e').textContent = 'Der Code passt nicht. Bitte den aktuellen Code aus der App eingeben.'; return; }
         toast('Bestätigt'); boot(); return;
+      }
+      if (f.id === 'fNeuAkte') {
+        var obj = $('#n_obj').value.trim();
+        if (!obj) { $('#n_obj_e').textContent = 'Bitte geben Sie Ort, Straße und Wohnungsnummer an.'; $('#n_obj').focus(); return; }
+        var nid = q(await sb.rpc('kaeufer_akte_anlegen', { p_objekt: obj, p_vz: parseInt($('#n_vz').value, 10) }));
+        toast('Wohnung angelegt'); location.hash = '#/akte/' + nid; return;
       }
       if (f.id === 'fAntwort') { var t = $('#antwort').value.trim(); if (!t) return; q(await sb.rpc('kaeufer_antworten', { p_akte: A.akte.id, p_text: t })); toast('Antwort gesendet'); viewAkte(A.akte.id); return; }
       if (f.id === 'fFrage') { var t2 = $('#frage').value.trim(); if (!t2) return; await stopTimer(); q(await sb.rpc('kanzlei_rueckfrage', { p_akte: A.akte.id, p_text: t2 })); toast('Nachricht an den Käufer gesendet'); viewFall(A.akte.id); return; }
