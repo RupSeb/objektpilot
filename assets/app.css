@@ -348,3 +348,12 @@ main .wrap > *{animation:rein .35s cubic-bezier(.2,.8,.2,1) both}
 }
 body.mit-tabbar .brand b{display:inline}
 .hero .big small{font-variant-numeric:normal}
+
+/* Vorschau-Leiste */
+.demo-leiste{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;background:var(--y);color:#111;padding:8px max(16px,env(safe-area-inset-left,0px));font-size:13.5px}
+.demo-leiste b{font-weight:800}
+.demo-leiste .demo-rollen{display:flex;gap:4px;margin-left:auto}
+.demo-leiste a{color:#111;font-weight:600;text-decoration:none;padding:4px 10px;border-radius:99px}
+.demo-leiste a[aria-current]{background:#111;color:var(--y)}
+.demo-leiste button{background:none;border:0;font:inherit;font-weight:600;text-decoration:underline;cursor:pointer;color:#111}
+@media (max-width:640px){.demo-leiste .demo-weg{display:none}.demo-leiste .demo-rollen{margin-left:0;width:100%}}
