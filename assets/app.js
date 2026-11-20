@@ -259,14 +259,14 @@
     if (p.rolle === 'kaeufer') links.push(['#/wohnungen', 'Meine Wohnungen']);
     if (p.rolle === 'vertrieb') { links.push(['#/vertrieb', 'Käufer']); links.push(['#/vertrieb/neu', 'Übergeben']); }
     if (p.rolle === 'kanzlei') links.push(['#/kanzlei', 'Fälle']);
-    if (p.rolle === 'admin') links.push(['#/admin', 'Verwaltung']);
+    if (p.rolle === 'admin' || S.verwaltung) links.push(['#/admin', 'Verwaltung']);
     n.innerHTML = links.map(function (l) { return '<a href="' + l[0] + '"' + (h === l[0] || (l[0] !== '#/' && h.indexOf(l[0]) === 0 && !(l[0] === '#/vertrieb' && h === '#/vertrieb/neu')) ? ' aria-current="page"' : '') + '>' + l[1] + '</a>'; }).join('') +
       '<span class="who" title="' + esc(p.email) + '">' + esc(p.name || p.email) + '</span><button type="button" data-act="abmelden">Abmelden</button>';
     $('#kopfZusatz').textContent = { kaeufer: 'Anlage V für Kapitalanleger', vertrieb: 'Für Vertriebe', kanzlei: 'Kanzlei', admin: 'Verwaltung' }[p.rolle] || '';
     var la = S.letzteAkte, tabs = {
       kaeufer: la ? [['#/akte/' + la, 'Übersicht', 'wohnung'], ['#/akte/' + la + '/unterlagen', 'Unterlagen', 'unterlagen'], ['#/wohnungen', 'Wohnungen', 'stapel'], ['#/konto', 'Konto', 'person']] : [['#/wohnungen', 'Wohnungen', 'stapel'], ['#/konto', 'Konto', 'person']],
-      vertrieb: [['#/vertrieb', 'Käufer', 'liste'], ['#/vertrieb/neu', 'Übergeben', 'plus'], ['#/konto', 'Konto', 'person']],
-      kanzlei: [['#/kanzlei', 'Fälle', 'liste'], ['#/konto', 'Konto', 'person']],
+      vertrieb: [['#/vertrieb', 'Käufer', 'liste'], ['#/vertrieb/neu', 'Übergeben', 'plus']].concat(S.verwaltung ? [['#/admin', 'Verwaltung', 'hausgeld']] : [], [['#/konto', 'Konto', 'person']]),
+      kanzlei: [['#/kanzlei', 'Fälle', 'liste']].concat(S.verwaltung ? [['#/admin', 'Verwaltung', 'hausgeld']] : [], [['#/konto', 'Konto', 'person']]),
       admin: [['#/admin', 'Verwaltung', 'hausgeld'], ['#/konto', 'Konto', 'person']]
     }[p.rolle] || [];
     var tb = $('#tabbar'); if (!tb) { tb = document.createElement('nav'); tb.id = 'tabbar'; tb.className = 'tabbar'; tb.setAttribute('aria-label', 'Schnellnavigation'); document.body.appendChild(tb); }
@@ -360,6 +360,8 @@
     try {
       S.profil = await profilLaden();
       if (S.profil.rolle !== 'kaeufer') { if (!(await mfaPruefen())) { nav(); return; } }
+      S.verwaltung = S.profil.rolle === 'admin';
+      if (S.profil.rolle === 'kanzlei' || S.profil.rolle === 'vertrieb') { try { var iv = await sb.rpc('ist_verwaltung'); S.verwaltung = !iv.error && iv.data === true; } catch (x) { S.verwaltung = false; } }
       var o = await sb.from('organisation').select('*').order('name'); S.orgs = o.data || [];
       nav(); route();
     } catch (e) { fehler(e); }
@@ -371,6 +373,7 @@
     var h = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean), r = S.profil.rolle;
     nav();
     if (h[0] === 'konto') return viewKonto();
+    if (h[0] === 'admin' && S.verwaltung) return viewAdmin();
     if (r === 'kaeufer') { if (h[0] === 'akte' && h[1]) return h[2] === 'konto' ? viewKontoauszug(h[1]) : h[2] ? viewAbschnitt(h[1], h[2]) : viewAkte(h[1]); return viewKaeuferStart(); }
     if (r === 'vertrieb') { if (h[0] === 'vertrieb' && h[1] === 'neu') return viewVertriebNeu(); return viewVertrieb(); }
     if (r === 'kanzlei') { if (h[0] === 'kanzlei' && h[1]) return viewFall(h[1]); return viewKanzlei(); }
