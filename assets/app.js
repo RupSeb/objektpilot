@@ -56,6 +56,7 @@
     var h = main.querySelector('h1'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
     hochzaehlen();
     einblenden();
+    kopfBewegen();
     window.scrollTo(0, 0);
   }
   function hochzaehlen() {
@@ -111,6 +112,19 @@
     });
   }
   window.addEventListener('scroll', logoBewegen, { passive: true });
+  // Parallaxe für Kopfbilder: Bild läuft langsamer mit und zoomt beim Scrollen leicht heraus
+  var kopfRaf = 0;
+  function kopfBewegen() {
+    if (RUHIG || kopfRaf) return;
+    kopfRaf = requestAnimationFrame(function () {
+      kopfRaf = 0;
+      $$('.ok-bild').forEach(function (el) {
+        var r = el.parentNode.getBoundingClientRect(), y = Math.max(-r.height, Math.min(r.height, -r.top));
+        el.style.transform = 'translateY(' + (y * 0.35).toFixed(1) + 'px) scale(' + (1.14 - Math.min(1, Math.max(0, y) / 500) * 0.1).toFixed(3) + ')';
+      });
+    });
+  }
+  window.addEventListener('scroll', kopfBewegen, { passive: true });
   window.addEventListener('resize', logoBewegen, { passive: true });
   document.addEventListener('pointermove', function (e) {
     if (!$('.logo3d')) return;
@@ -399,8 +413,8 @@
           '<div class="note info"><span class="ic" aria-hidden="true">i</span><span><b>Kommt Ihre Wohnung über einen Vertrieb?</b>Dann müssen Sie nichts anlegen. Sie erscheint hier automatisch, sobald der Vertrieb sie mit <b>' + esc(S.profil.email) + '</b> übergeben hat.</span></div></div>', 'Meine Wohnungen');
         return;
       }
-      mount('<div class="wrap narrow stack"><span class="eyebrow">Meine Wohnungen</span><h1 class="title">Ihre Anlagen V</h1><ul class="tasks">' +
-        akten.map(function (a) { return '<li><a href="#/akte/' + a.id + '"><span class="n" aria-hidden="true">' + String(a.vz).slice(2) + '</span><span class="t"><b>' + esc(a.objekt_bezeichnung) + '</b><span>Steuerjahr ' + a.vz + ' · ' + a.nummer + '</span></span>' + statusChip(a.status) + '</a></li>'; }).join('') + '</ul>' +
+      mount('<div class="wrap narrow stack"><header class="objektkopf klein"><div class="ok-bild bild-2" aria-hidden="true"></div><div class="ok-text stack-s"><span class="eyebrow">Meine Wohnungen</span><h1 class="title">Ihre Anlagen V</h1></div></header><ul class="tasks">' +
+        akten.map(function (a, i) { return '<li class="rein-r" style="--d:' + (0.08 + i * 0.07).toFixed(2) + 's"><a href="#/akte/' + a.id + '"><span class="n" aria-hidden="true">' + String(a.vz).slice(2) + '</span><span class="t"><b>' + esc(a.objekt_bezeichnung) + '</b><span>Steuerjahr ' + a.vz + ' · ' + a.nummer + '</span></span>' + statusChip(a.status) + '</a></li>'; }).join('') + '</ul>' +
         '<details class="help"><summary>Weitere Wohnung oder weiteres Steuerjahr anlegen</summary><div style="margin-top:10px">' + neuForm + '</div></details></div>', 'Meine Wohnungen');
     } catch (e) { fehler(e); }
   }
@@ -450,17 +464,17 @@
       await akteLaden(id); S.letzteAkte = id; nav();
       if (A.akte.status === 'eingeladen') { await sb.rpc('kaeufer_oeffnen', { p_akte: id }); A.akte.status = 'in_erfassung'; }
       var a = A.akte, offen = a.status === 'in_erfassung';
-      var kopf = '<div class="stack-s"><span class="eyebrow">' + esc(a.nummer) + ' · Steuerjahr ' + a.vz + '</span><h1 class="title">' + esc(a.objekt_bezeichnung) + '</h1><div class="row">' + statusChip(a.status) + '</div></div>' + luftbildHtml();
+      var kopf = '<header class="objektkopf"><div class="ok-bild" aria-hidden="true"></div><div class="ok-text stack-s"><span class="eyebrow">' + esc(a.nummer) + ' · Steuerjahr ' + a.vz + '</span><h1 class="title">' + esc(a.objekt_bezeichnung) + '</h1><div class="row">' + statusChip(a.status) + '</div></div></header>';
       if (offen) {
         var n = fortschritt(), naechste = ABS.filter(function (x) { return !absFertig(x.k); })[0] || ABS[7];
         var alleFertig = n >= 7;
         var rv = rechne(A.daten, a.vz, []), plus = rv && rv.freibetrag && rv.freibetrag.steuerwirkungMonat;
         mount('<div class="wrap narrow stack">' + kopf +
-          '<section class="hero rein" aria-label="Ihr Netto-Plus und Fortschritt"><span class="eyebrow">Ihr Netto-Plus' + (plus ? ' ab ' + rv.freibetrag.jahr : '') + '</span>' +
+          '<section class="hero rein ueber" aria-label="Ihr Netto-Plus und Fortschritt"><span class="eyebrow">Ihr Netto-Plus' + (plus ? ' ab ' + rv.freibetrag.jahr : '') + '</span>' +
           (plus ? '<div class="big num">+<span data-zahl="' + Math.round(plus) + '">' + eur(plus) + '</span><small>im Monat, vorläufig</small></div><p class="small">So viel weniger Lohnsteuer zahlen Sie voraussichtlich mit Freibetrag. Die Kanzlei prüft die Zahl, bevor sie gilt.</p>'
             : '<div class="big">+ ? €<small>im Monat</small></div><p class="small">Sobald Wohnung, Miete und Finanzierung eingetragen sind, sehen Sie hier, wie viel mehr netto im Monat drin ist.</p>') +
           '<div class="row"><b>' + n + ' von 7 Schritten erledigt</b><span class="spacer"></span><span class="tiny">Alles wird automatisch gespeichert</span></div><div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="7" aria-valuenow="' + n + '"><i style="width:' + Math.max(3, Math.round(n / 7 * 100)) + '%"></i></div>' +
-          '<a class="btn" href="#/akte/' + id + '/' + naechste.k + '">' + (n === 0 ? 'Jetzt starten' : 'Weiter mit: ' + naechste.t) + ' →</a></section>' +
+          '<a class="btn" href="#/akte/' + id + '/' + naechste.k + '">' + (n === 0 ? 'Jetzt starten' : 'Weiter mit: ' + naechste.t) + ' →</a></section>' + luftbildHtml() +
           '<ol class="tasks">' + ABS.map(function (x, i) {
             var fertig = absFertig(x.k), gesperrt = x.k === 'auftrag' && !alleFertig;
             var inner = '<span class="n" aria-hidden="true">' + ico(fertig ? 'check' : x.k) + '</span><span class="t"><b>' + x.t + '</b><span>' + x.s + '</span></span>' + (fertig ? '<span class="chip c-ok">Erledigt</span>' : gesperrt ? '<span class="chip c-grey">Zuerst Schritte 1 bis 7</span>' : '<span class="chip c-grey">Offen</span>');
@@ -477,7 +491,7 @@
         if (luftbildErlaubt()) luftbildStarten();
         return;
       }
-      mount('<div class="wrap narrow stack">' + kopf + statusInhalt() + '</div>', a.objekt_bezeichnung);
+      mount('<div class="wrap narrow stack">' + kopf + '<div class="ueber stack">' + statusInhalt() + '</div>' + luftbildHtml() + '</div>', a.objekt_bezeichnung);
       if (luftbildErlaubt()) luftbildStarten();
     } catch (e) { fehler(e); }
   }
