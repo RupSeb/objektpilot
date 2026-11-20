@@ -37,6 +37,7 @@ button{cursor:pointer}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:6px}
 ::selection{background:var(--y);color:#111}
 h1,h2,h3{margin:0;line-height:1.1;text-wrap:balance}
+p,li,.small,.tiny,.lead,dd,label span,.note span,.rw{text-wrap:pretty}
 p{margin:0}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .wrap{width:100%;max-width:1160px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -391,3 +392,56 @@ tr.kx-anders td{opacity:.6}
 .lb-frage b{font-size:20px;font-weight:750;letter-spacing:-.02em}
 .lb-frage span{font-size:13.5px;color:#cfcfcf;max-width:48ch;text-wrap:pretty}
 @media (max-width:640px){.luftbild{aspect-ratio:4/3}}
+
+/* Bewegung beim Scrollen (nur wenn das Gerät Bewegung erlaubt, Klasse .bewegt setzt app.js) */
+.bewegt .rein{opacity:0;transform:translateY(22px)}
+.bewegt .rein-r{opacity:0;transform:translateX(40px)}
+.bewegt .rein.da,.bewegt .rein-r.da{opacity:1;transform:none;transition:opacity .6s ease var(--d,0s),transform .75s cubic-bezier(.2,.8,.2,1) var(--d,0s)}
+.bewegt .sheet .stamp{animation:stempel .5s cubic-bezier(.3,1.5,.5,1) 1.3s both}
+@keyframes stempel{from{opacity:0;scale:1.9}to{opacity:1;scale:1}}
+.bewegt .auth .side > :where(.eyebrow,h1,.demo,ul){animation:auftritt .8s cubic-bezier(.2,.8,.2,1) both}
+.bewegt .auth .side > h1{animation-delay:.12s}
+.bewegt .auth .side > .demo{animation:auftritt .8s cubic-bezier(.2,.8,.2,1) .3s both,schweben 7s ease-in-out 1.2s infinite}
+.bewegt .auth .side > ul{animation-delay:.45s}
+@keyframes auftritt{from{opacity:0;transform:translateX(-28px)}}
+@keyframes schweben{50%{translate:0 -8px}}
+@media print{.bewegt .rein,.bewegt .rein-r{opacity:1!important;transform:none!important}}
+
+/* Bildebene hinter der Anmeldeseite (Foto über --side-foto) */
+.auth .side-bild{position:absolute;inset:-12% 0;z-index:0;pointer-events:none;background:linear-gradient(180deg,rgba(17,17,17,.3) 0%,rgba(17,17,17,.78) 48%,rgba(17,17,17,.96) 100%),var(--side-foto,none) center/cover no-repeat}
+.auth .side > .eyebrow,.auth .side > h1,.auth .side > ul{position:relative;z-index:1}
+@supports (animation-timeline: scroll()){
+  .bewegt .auth .side-bild{animation:parallaxe linear both;animation-timeline:scroll(root)}
+  @keyframes parallaxe{from{transform:translateY(-4%)}to{transform:translateY(10%)}}
+}
+
+/* Logo in 3D: gestapelte Ebenen, dreht sich beim Scrollen und mit dem Zeiger */
+.logo3d{--g:180px;position:absolute;width:var(--g);height:var(--g);perspective:900px;pointer-events:none;z-index:0}
+.logo3d .l3{position:absolute;inset:0;transform-style:preserve-3d;transform:rotateX(var(--rx,14deg)) rotateY(var(--ry,-26deg));transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.logo3d i,.logo3d b{position:absolute;inset:0;border-radius:27%}
+.logo3d i{background:hsl(44 100% calc(47% - var(--z) * 1.1%));transform:translateZ(calc(var(--z) * var(--g) / -64))}
+.logo3d b{transform:translateZ(1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 0 0 1px rgba(255,255,255,.18);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'%3E%3Crect width='44' height='44' rx='12' fill='%23FFD23F'/%3E%3Cpath d='M11 23 L22 13 L33 23' fill='none' stroke='%23111' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M15 21 V31 H29 V21' fill='none' stroke='%23111' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M22 23.5 V29 M19.25 26.25 H24.75' stroke='%23111' stroke-width='2.8' stroke-linecap='round'/%3E%3C/svg%3E") center/100% no-repeat}
+.logo3d::after{content:"";position:absolute;left:8%;right:8%;bottom:-24%;height:14%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.45),transparent);filter:blur(4px)}
+.bewegt .logo3d{animation:logoSchweben 6.5s ease-in-out infinite}
+@keyframes logoSchweben{50%{translate:0 -10px}}
+.logo3d.auf-login{--g:112px;position:relative;margin:0 0 34px 10px}
+.hero.mit-logo{padding-right:200px}
+.hero.mit-logo .logo3d{--g:132px;right:34px;top:34px}
+@media (max-width:640px){
+  .logo3d.auf-login{--g:84px;margin-bottom:24px}
+  .hero.mit-logo{padding-right:20px;padding-top:126px}
+  .hero.mit-logo .logo3d{--g:84px;right:auto;left:24px;top:22px}
+}
+
+/* Luftbild wird beim Wegscrollen kleiner und dunkler */
+@supports (animation-timeline: view()){
+  .bewegt .luftbild{animation:luftbildRaus linear both;animation-timeline:view();animation-range:exit 0% exit 100%}
+  @keyframes luftbildRaus{to{transform:scale(.9);filter:brightness(.45)}}
+}
+@media (prefers-reduced-motion: reduce){.logo3d,.logo3d .l3{animation:none!important;transition:none!important}}
+.auth .demo strong span{font-size:inherit;font-weight:inherit}
+
+/* Fotos: Unsplash-Lizenz. anmeldung.webp von Alexandre Lallemand, willkommen.webp von Tobias Wilden */
+.auth .side{--side-foto:url("bilder/anmeldung.webp")}
+.hero.mit-logo{background:linear-gradient(100deg,rgba(17,17,17,.97) 30%,rgba(17,17,17,.78) 62%,rgba(17,17,17,.45)),url("bilder/willkommen.webp") right center/cover no-repeat,var(--black)}
+@media (max-width:640px){.hero.mit-logo{background:linear-gradient(180deg,rgba(17,17,17,.55),rgba(17,17,17,.96) 42%),url("bilder/willkommen.webp") center top/cover no-repeat,var(--black)}}

@@ -55,6 +55,7 @@
     if (titel) document.title = titel + ' · Objektpilot';
     var h = main.querySelector('h1'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
     hochzaehlen();
+    einblenden();
     window.scrollTo(0, 0);
   }
   function hochzaehlen() {
@@ -66,6 +67,57 @@
       el.textContent = '0 €'; requestAnimationFrame(schritt); setTimeout(function () { el.textContent = nf0.format(ziel) + ' €'; }, dauer + 150);
     });
   }
+  /* Bewegung: Einblenden beim Scrollen, 3D-Logo. Ruhig bei „Bewegung reduzieren“. */
+  var RUHIG = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var IO = !RUHIG && 'IntersectionObserver' in window ? new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('da'); IO.unobserve(e.target); } });
+  }, { rootMargin: '0px 0px -6% 0px', threshold: 0.1 }) : null;
+  if (IO) document.documentElement.classList.add('bewegt');
+  function einblenden() {
+    $$('.rein, .rein-r').forEach(function (el) {
+      if (!IO) { el.classList.add('da'); return; }
+      IO.observe(el);
+      el.addEventListener('transitionend', function fertig(ev) {
+        if (ev.propertyName !== 'transform') return;
+        el.classList.toggle('rein', false); el.classList.toggle('rein-r', false); el.classList.toggle('da', false);
+        el.style.setProperty('--d', '0s');
+        el.removeEventListener('transitionend', fertig);
+      });
+    });
+    logoBewegen();
+    // Absicherung: Was im Bild ist, wird spätestens nach 1,5 s sichtbar, auch wenn der Browser den Beobachter drosselt
+    if (IO) setTimeout(function () {
+      $$('.rein:not(.da), .rein-r:not(.da)').forEach(function (el) { if (el.getBoundingClientRect().top < (window.innerHeight || 800)) el.classList.add('da'); });
+    }, 1500);
+  }
+  window.addEventListener('scroll', function () {
+    if (!IO) return;
+    $$('.rein:not(.da), .rein-r:not(.da)').forEach(function (el) { if (el.getBoundingClientRect().top < (window.innerHeight || 800) * 0.94) el.classList.add('da'); });
+  }, { passive: true });
+  function logo3d(cls) {
+    var s = ''; for (var i = 16; i >= 1; i--) s += '<i style="--z:' + i + '"></i>';
+    return '<div class="logo3d' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><div class="l3">' + s + '<b></b></div></div>';
+  }
+  var logoRaf = 0, zeiger = { x: 0, y: 0 };
+  function logoBewegen() {
+    if (RUHIG || logoRaf) return;
+    logoRaf = requestAnimationFrame(function () {
+      logoRaf = 0;
+      $$('.logo3d').forEach(function (el) {
+        var r = el.getBoundingClientRect(), mitte = (r.top + r.height / 2) / (window.innerHeight || 1) - 0.5;
+        el.style.setProperty('--ry', (-26 + mitte * 50 + zeiger.x * 14).toFixed(2) + 'deg');
+        el.style.setProperty('--rx', (14 - mitte * 18 - zeiger.y * 10).toFixed(2) + 'deg');
+      });
+    });
+  }
+  window.addEventListener('scroll', logoBewegen, { passive: true });
+  window.addEventListener('resize', logoBewegen, { passive: true });
+  document.addEventListener('pointermove', function (e) {
+    if (!$('.logo3d')) return;
+    zeiger.x = e.clientX / (window.innerWidth || 1) - 0.5; zeiger.y = e.clientY / (window.innerHeight || 1) - 0.5;
+    logoBewegen();
+  }, { passive: true });
+
   function laden() { main.innerHTML = '<div class="wrap narrow"><div class="stack" aria-busy="true"><div class="skel" style="width:35%"></div><div class="skel" style="height:40px;width:70%"></div><div class="skel"></div><div class="skel"></div><div class="skel" style="width:60%"></div></div></div>'; }
   function q(r) { if (r.error) throw r.error; return r.data; }
   function steuerIdOk(s) {
@@ -227,10 +279,10 @@
   function viewAnmelden() {
     var mail = (new URLSearchParams(location.search)).get('mail') || sessionStorageGet('op_mail') || '';
     mount('<div class="auth">' +
-      '<section class="side" aria-label="Über Objektpilot"><span class="eyebrow">Anlage V für Kapitalanleger</span><h1>Mehr netto<br>aus Ihrer Wohnung.<br><em>Von der Kanzlei geprüft.</em></h1>' +
-      '<div class="demo" aria-hidden="true"><span>Beispiel: Ihr Netto-Plus mit Freibetrag</span><strong>+551 €</strong><small>im Monat, vorläufig</small></div>' +
+      '<section class="side" aria-label="Über Objektpilot"><div class="side-bild" aria-hidden="true"></div><span class="eyebrow">Anlage V für Kapitalanleger</span><h1>Mehr netto<br>aus Ihrer Wohnung.<br><em>Von der Kanzlei geprüft.</em></h1>' +
+      '<div class="demo" aria-hidden="true"><span>Beispiel: Ihr Netto-Plus mit Freibetrag</span><strong>+<span data-zahl="551">551 €</span></strong><small>im Monat, vorläufig</small></div>' +
       '<ul><li>Kam die Wohnung über einen Vertrieb, sind die Kaufdaten schon da. Sonst tragen Sie sie in etwa 15 Minuten selbst ein.</li><li>Eine Steuerkanzlei prüft alles und gibt die Anlage V frei.</li><li>Server in Frankfurt. Ein Vertrieb sieht keine Steuerdaten.</li></ul></section>' +
-      '<section class="form"><div class="stack" id="authBox">' + authSchritt1(mail) + '</div></section></div>', 'Anmelden');
+      '<section class="form"><div>' + logo3d('auf-login') + '<div class="stack" id="authBox">' + authSchritt1(mail) + '</div></div></section></div>', 'Anmelden');
   }
   function authSchritt1(mail) {
     return '<h1 class="h2">Anmelden</h1><p class="muted">Ohne Passwort. Wir schicken Ihnen einen Code per E-Mail.</p>' +
@@ -332,7 +384,7 @@
         '<div class="field"><label for="n_vz">Steuerjahr</label><div class="inp"><select id="n_vz">' + [jahr - 2, jahr - 1, jahr].map(function (y) { return '<option' + (y === jahr ? ' selected' : '') + '>' + y + '</option>'; }).join('') + '</select></div></div></div>' +
         '<button class="btn gold" type="submit">Anlegen und loslegen →</button></form>';
       if (!akten.length) {
-        mount('<div class="wrap narrow stack"><section class="hero"><span class="eyebrow">Willkommen</span><h1 class="title" style="color:#fff">Ihre Anlage V,<br><span style="color:var(--y)">von der Kanzlei geprüft.</span></h1>' +
+        mount('<div class="wrap narrow stack"><section class="hero rein mit-logo">' + logo3d('im-hero') + '<span class="eyebrow">Willkommen</span><h1 class="title" style="color:#fff">Ihre Anlage V,<br><span style="color:var(--y)">von der Kanzlei geprüft.</span></h1>' +
           '<p>Legen Sie Ihre Wohnung an und tragen Sie die Zahlen aus Kaufvertrag, Mietvertrag und Darlehensvertrag ein. Das dauert etwa 15 Minuten. Danach prüft eine Steuerkanzlei alles zum Festpreis und gibt die Anlage V frei.</p>' +
           '<div class="row small"><span>✓ Netto-Plus sofort sichtbar</span><span>✓ Festpreis ab 249 €</span><span>✓ Server in Frankfurt</span></div></section>' + neuForm +
           '<div class="note info"><span class="ic" aria-hidden="true">i</span><span><b>Kommt Ihre Wohnung über einen Vertrieb?</b>Dann müssen Sie nichts anlegen. Sie erscheint hier automatisch, sobald der Vertrieb sie mit <b>' + esc(S.profil.email) + '</b> übergeben hat.</span></div></div>', 'Meine Wohnungen');
@@ -395,7 +447,7 @@
         var alleFertig = n >= 7;
         var rv = rechne(A.daten, a.vz, []), plus = rv && rv.freibetrag && rv.freibetrag.steuerwirkungMonat;
         mount('<div class="wrap narrow stack">' + kopf +
-          '<section class="hero" aria-label="Ihr Netto-Plus und Fortschritt"><span class="eyebrow">Ihr Netto-Plus' + (plus ? ' ab ' + rv.freibetrag.jahr : '') + '</span>' +
+          '<section class="hero rein" aria-label="Ihr Netto-Plus und Fortschritt"><span class="eyebrow">Ihr Netto-Plus' + (plus ? ' ab ' + rv.freibetrag.jahr : '') + '</span>' +
           (plus ? '<div class="big num">+<span data-zahl="' + Math.round(plus) + '">' + eur(plus) + '</span><small>im Monat, vorläufig</small></div><p class="small">So viel weniger Lohnsteuer zahlen Sie voraussichtlich mit Freibetrag. Die Kanzlei prüft die Zahl, bevor sie gilt.</p>'
             : '<div class="big">+ ? €<small>im Monat</small></div><p class="small">Sobald Wohnung, Miete und Finanzierung eingetragen sind, sehen Sie hier, wie viel mehr netto im Monat drin ist.</p>') +
           '<div class="row"><b>' + n + ' von 7 Schritten erledigt</b><span class="spacer"></span><span class="tiny">Alles wird automatisch gespeichert</span></div><div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="7" aria-valuenow="' + n + '"><i style="width:' + Math.max(3, Math.round(n / 7 * 100)) + '%"></i></div>' +
@@ -403,12 +455,12 @@
           '<ol class="tasks">' + ABS.map(function (x, i) {
             var fertig = absFertig(x.k), gesperrt = x.k === 'auftrag' && !alleFertig;
             var inner = '<span class="n" aria-hidden="true">' + ico(fertig ? 'check' : x.k) + '</span><span class="t"><b>' + x.t + '</b><span>' + x.s + '</span></span>' + (fertig ? '<span class="chip c-ok">Erledigt</span>' : gesperrt ? '<span class="chip c-grey">Zuerst Schritte 1 bis 7</span>' : '<span class="chip c-grey">Offen</span>');
-            return '<li class="' + (fertig ? 'done' : '') + '">' + (gesperrt ? '<span class="dis">' + inner + '</span>' : '<a href="#/akte/' + id + '/' + x.k + '">' + inner + '</a>') + '</li>';
+            return '<li class="rein-r' + (fertig ? ' done' : '') + '" style="--d:' + (0.05 + i * 0.06).toFixed(2) + 's">' + (gesperrt ? '<span class="dis">' + inner + '</span>' : '<a href="#/akte/' + id + '/' + x.k + '">' + inner + '</a>') + '</li>';
           }).join('') + '</ol>' +
           (function () {
             var ko = get(A.daten, 'eingabe.konto'), nk = ko && ko.bewegungen ? ko.bewegungen.filter(function (b) { return !b.dup; }).length : 0;
             var offenK = nk ? ko.bewegungen.filter(function (b) { return !b.dup && b.kat === 'unklar'; }).length : 0;
-            return '<ul class="tasks"><li><a href="#/akte/' + id + '/konto"><span class="n" aria-hidden="true">' + ico('liste') + '</span><span class="t"><b>Kontoauszug einlesen</b><span>' +
+            return '<ul class="tasks"><li class="rein-r" style="--d:.1s"><a href="#/akte/' + id + '/konto"><span class="n" aria-hidden="true">' + ico('liste') + '</span><span class="t"><b>Kontoauszug einlesen</b><span>' +
               (nk ? nk + ' Umsätze eingelesen' + (offenK ? ', ' + offenK + ' noch ungeklärt' : ', alle zugeordnet') : 'Freiwillig. Miete, Hausgeld und Zinsen direkt aus den Umsätzen, statt sie abzutippen.') + '</span></span>' +
               '<span class="chip ' + (nk ? (offenK ? 'c-warn' : 'c-ok') : 'c-grey') + '">' + (nk ? (offenK ? 'Klären' : 'Eingelesen') : 'Freiwillig') + '</span></a></li></ul>';
           })() +
@@ -452,7 +504,7 @@
   }
   function anlageVTabelle(r) {
     var E = r.zeilen.filter(function (l) { return l.art === 'E' && l.betrag; }), W = r.zeilen.filter(function (l) { return l.art === 'W' && l.betrag; });
-    var row = function (l) { return '<tr><td class="zl">' + esc(l.zeile) + '</td><td>' + esc(l.feld) + '</td><td class="r">' + nf0.format(l.betrag) + '</td></tr>'; };
+    var nr = 0, row = function (l) { nr++; return '<tr class="rein" style="--d:' + (0.15 + nr * 0.07).toFixed(2) + 's"><td class="zl">' + esc(l.zeile) + '</td><td>' + esc(l.feld) + '</td><td class="r">' + nf0.format(l.betrag) + '</td></tr>'; };
     return '<div class="tw"><table><thead><tr><th>Zeile</th><th>Eintrag</th><th class="r">Euro</th></tr></thead><tbody>' + E.map(row).join('') +
       '<tr class="sum"><td class="zl">32</td><td>Summe der Einnahmen</td><td class="r">' + nf0.format(r.summen.einnahmen) + '</td></tr>' + W.map(row).join('') +
       '<tr class="sum"><td class="zl">83</td><td>Summe der Werbungskosten</td><td class="r">' + nf0.format(r.summen.werbungskosten) + '</td></tr>' +
