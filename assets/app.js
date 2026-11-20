@@ -152,6 +152,7 @@
     { k: 'notar_grundschuld', t: 'Notarrechnung zur Grundschuld', req: 0 },
     { k: 'wirtschaftsplan', t: 'Wirtschaftsplan oder Hausgeldabrechnung', req: 1 },
     { k: 'zinsbescheinigung', t: 'Jahreszinsbescheinigung der Bank', req: 0 },
+    { k: 'lohnsteuer', t: 'Lohnsteuerbescheinigung oder Dezember-Gehaltsabrechnung', req: 0 },
     { k: 'rnd_gutachten', t: 'Gutachten zur Restnutzungsdauer', req: 0, nurWenn: function () { return get(A.daten, 'eingabe.erwerb.rndGutachten') === 'ja'; } },
     { k: 'sonstiges', t: 'Weitere Unterlage', req: 0 }
   ];
@@ -173,7 +174,10 @@
       { p: 'eingabe.erwerb.bauantrag', l: 'Datum des Bauantrags', t: 'date', neubau: 1, h: 'Nur für die Sonderabschreibung nötig. Fragen Sie den Bauträger, wenn es nicht im Vertrag steht.' },
       { p: 'eingabe.erwerb.eh40qng', l: 'Effizienzhaus 40 mit QNG-Siegel', t: 'select', neubau: 1, opts: [['ja', 'Ja'], ['nein', 'Nein'], ['unklar', 'Weiß ich nicht']], h: 'Steht im Energieausweis oder im Zertifikat zum Qualitätssiegel Nachhaltiges Gebäude.' },
       { p: 'eingabe.erwerb.rndGutachten', l: 'Gutachten zur Restnutzungsdauer', t: 'select', bestand: 1, opts: [['nein', 'Nein'], ['ja', 'Ja, liegt vor'], ['pruefen', 'Nein, aber ich möchte wissen, ob es sich lohnt']], h: 'Das Gesetz rechnet je nach Baujahr mit 33 bis 50 Jahren Nutzungsdauer. Ist die tatsächliche Restnutzungsdauer kürzer, kann ein Gutachten die Abschreibung deutlich erhöhen. Am meisten bringt das bei älteren Gebäuden.' },
-      { p: 'eingabe.erwerb.restnutzungsdauer', l: 'Restnutzungsdauer laut Gutachten', t: 'num', suf: 'Jahre', bestand: 1, h: 'Steht im Ergebnis des Gutachtens. Nur ausfüllen, wenn ein Gutachten vorliegt.' }
+      { p: 'eingabe.erwerb.restnutzungsdauer', l: 'Restnutzungsdauer laut Gutachten', t: 'num', suf: 'Jahre', bestand: 1, h: 'Steht im Ergebnis des Gutachtens. Nur ausfüllen, wenn ein Gutachten vorliegt.' },
+      { p: 'eingabe.erwerb.bodenrichtwert', l: 'Bodenrichtwert', t: 'num', suf: '€/m²', h: 'Freiwillig, damit prüfen wir den Gebäudeanteil. Den Wert finden Sie kostenlos in BORIS, dem Bodenrichtwert-Portal Ihres Bundeslands.' },
+      { p: 'eingabe.erwerb.grundstueckQm', l: 'Grundstücksfläche der ganzen Anlage', t: 'num', suf: 'm²', h: 'Steht im Kaufvertrag oder im Grundbuchauszug.' },
+      { p: 'eingabe.erwerb.meaZaehler', l: 'Ihr Miteigentumsanteil', t: 'num', suf: '/10.000', h: 'Steht im Kaufvertrag, zum Beispiel 312/10.000. Hier nur die erste Zahl eintragen.' }
     ],
     miete: [
       { p: 'eingabe.miete.kaltMonat', l: 'Kaltmiete pro Monat', t: 'eur', req: 1, h: 'Laut Mietvertrag, ohne Nebenkosten.' },
@@ -202,8 +206,19 @@
       { p: 'stammdaten.ort', l: 'Ort', t: 'text', req: 1, ac: 'address-level2' },
       { p: 'stammdaten.steuerId', l: 'Steuerliche Identifikationsnummer', t: 'steuerid', req: 1, h: 'Elf Ziffern. Steht auf Ihrer Lohnabrechnung oder dem letzten Steuerbescheid.' },
       { p: 'stammdaten.finanzamt', l: 'Zuständiges Finanzamt', t: 'text', h: 'Das Finanzamt Ihres Wohnorts. Wenn Sie es nicht wissen, leer lassen.' },
-      { p: 'stammdaten.steuernummer', l: 'Steuernummer', t: 'text', h: 'Nur wenn Sie schon eine haben, zum Beispiel aus einem Steuerbescheid.' },
-      { p: 'eingabe.personen.grenzsteuersatz', l: 'Ihr Grenzsteuersatz', t: 'pct', h: 'Nur für die Schätzung Ihrer monatlichen Ersparnis. Bei rund 60.000 € Jahresbrutto sind es meist um 40%. Leer lassen geht auch.' }
+      { p: 'stammdaten.steuernummer', l: 'Steuernummer', t: 'text', h: 'Nur wenn Sie schon eine haben, zum Beispiel aus einem Steuerbescheid.' }
+    ],
+    einkommen: [
+      { p: 'eingabe.personen.einkommen.brutto', l: 'Bruttoarbeitslohn im Jahr', t: 'eur', h: 'Lohnsteuerbescheinigung Zeile 3 oder die Jahressumme „Steuer-Brutto“ auf Ihrer Dezember-Abrechnung. Damit rechnen wir Ihre Ersparnis genau statt geschätzt.' },
+      { p: 'eingabe.personen.einkommen.rv', l: 'Rentenversicherung, Ihr Anteil im Jahr', t: 'eur', h: 'Lohnsteuerbescheinigung Zeile 23a.' },
+      { p: 'eingabe.personen.einkommen.kv', l: 'Krankenversicherung, Ihr Anteil im Jahr', t: 'eur', h: 'Lohnsteuerbescheinigung Zeile 25.' },
+      { p: 'eingabe.personen.einkommen.pv', l: 'Pflegeversicherung, Ihr Anteil im Jahr', t: 'eur', h: 'Lohnsteuerbescheinigung Zeile 26.' },
+      { p: 'eingabe.personen.einkommen.av', l: 'Arbeitslosenversicherung, Ihr Anteil im Jahr', t: 'eur', h: 'Lohnsteuerbescheinigung Zeile 27.' },
+      { p: 'eingabe.personen.einkommen.kirche', l: 'Kirchensteuer', t: 'select', opts: [['0', 'Nein'], ['0.09', 'Ja, 9%'], ['0.08', 'Ja, 8% (Bayern, Baden-Württemberg)']] },
+      { p: 'eingabe.personen.einkommen.zusammen', l: 'Veranlagung', t: 'select', opts: [['', 'Einzeln'], ['1', 'Zusammen mit Ehe- oder Lebenspartner']] },
+      { p: 'eingabe.personen.einkommen.partner.brutto', l: 'Bruttoarbeitslohn Partner im Jahr', t: 'eur', h: 'Nur bei Zusammenveranlagung.' },
+      { p: 'eingabe.personen.einkommen.partner.svGesamt', l: 'Sozialversicherung Partner im Jahr, gesamt', t: 'eur', h: 'Nur bei Zusammenveranlagung. Summe aus Renten-, Kranken-, Pflege- und Arbeitslosenversicherung, Arbeitnehmeranteil.' },
+      { p: 'eingabe.personen.grenzsteuersatz', l: 'Grenzsteuersatz, falls Sie die Werte oben nicht zur Hand haben', t: 'pct', h: 'Bei rund 60.000 € Jahresbrutto sind es meist um 40%. Mit den Werten aus der Lohnsteuerbescheinigung rechnen wir genauer.' }
     ]
   };
   var IC = {
@@ -281,7 +296,7 @@
     if (!S.session || !p) { n.innerHTML = ''; var t0 = $('#tabbar'); if (t0) t0.remove(); document.body.classList.remove('mit-tabbar'); return; }
     var links = [];
     if (p.rolle === 'kaeufer') links.push(['#/wohnungen', 'Meine Wohnungen']);
-    if (p.rolle === 'vertrieb') { links.push(['#/vertrieb', 'Käufer']); links.push(['#/vertrieb/neu', 'Übergeben']); }
+    if (p.rolle === 'vertrieb') { links.push(['#/vertrieb', 'Käufer']); links.push(['#/vertrieb/neu', 'Übergeben']); links.push(['#/rechner', 'Rechner']); }
     if (p.rolle === 'kanzlei') links.push(['#/kanzlei', 'Fälle']);
     if (p.rolle === 'admin' || S.verwaltung) links.push(['#/admin', 'Verwaltung']);
     n.innerHTML = links.map(function (l) { return '<a href="' + l[0] + '"' + (h === l[0] || (l[0] !== '#/' && h.indexOf(l[0]) === 0 && !(l[0] === '#/vertrieb' && h === '#/vertrieb/neu')) ? ' aria-current="page"' : '') + '>' + l[1] + '</a>'; }).join('') +
@@ -289,7 +304,7 @@
     $('#kopfZusatz').textContent = { kaeufer: 'Anlage V für Kapitalanleger', vertrieb: 'Für Vertriebe', kanzlei: 'Kanzlei', admin: 'Verwaltung' }[p.rolle] || '';
     var la = S.letzteAkte, tabs = {
       kaeufer: la ? [['#/akte/' + la, 'Übersicht', 'wohnung'], ['#/akte/' + la + '/unterlagen', 'Unterlagen', 'unterlagen'], ['#/wohnungen', 'Wohnungen', 'stapel'], ['#/konto', 'Konto', 'person']] : [['#/wohnungen', 'Wohnungen', 'stapel'], ['#/konto', 'Konto', 'person']],
-      vertrieb: [['#/vertrieb', 'Käufer', 'liste'], ['#/vertrieb/neu', 'Übergeben', 'plus']].concat(S.verwaltung ? [['#/admin', 'Verwaltung', 'hausgeld']] : [], [['#/konto', 'Konto', 'person']]),
+      vertrieb: [['#/vertrieb', 'Käufer', 'liste'], ['#/vertrieb/neu', 'Übergeben', 'plus'], ['#/rechner', 'Rechner', 'finanzierung']].concat(S.verwaltung ? [['#/admin', 'Verwaltung', 'hausgeld']] : [], [['#/konto', 'Konto', 'person']]),
       kanzlei: [['#/kanzlei', 'Fälle', 'liste']].concat(S.verwaltung ? [['#/admin', 'Verwaltung', 'hausgeld']] : [], [['#/konto', 'Konto', 'person']]),
       admin: [['#/admin', 'Verwaltung', 'hausgeld'], ['#/konto', 'Konto', 'person']]
     }[p.rolle] || [];
@@ -407,6 +422,7 @@
     if (h[0] === 'konto') return viewKonto();
     if (h[0] === 'admin' && S.verwaltung) return viewAdmin();
     if (r === 'kaeufer') { if (h[0] === 'akte' && h[1]) return h[2] === 'konto' ? viewKontoauszug(h[1]) : h[2] ? viewAbschnitt(h[1], h[2], h[3]) : viewAkte(h[1]); return viewKaeuferStart(); }
+    if (h[0] === 'rechner' && (r === 'vertrieb' || S.verwaltung)) return viewVorabrechnung();
     if (r === 'vertrieb') { if (h[0] === 'vertrieb' && h[1] === 'neu') return viewVertriebNeu(); return viewVertrieb(); }
     if (r === 'kanzlei') { if (h[0] === 'kanzlei' && h[1]) return viewFall(h[1]); return viewKanzlei(); }
     if (r === 'admin') return viewAdmin();
@@ -653,7 +669,7 @@
       else if (k === 'auftrag') body = auftragHtml();
       else if (k === 'miete') body = mieteHtml();
       else body = '<div class="stack">' + (k === 'wohnung' ? '<div class="grid2">' + F.wohnung.slice(0, 2).map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('') + '</div>' + F.wohnung.slice(2).filter(function (f) { var art = (A.daten.fallcheck || {}).art; return (!f.neubau || art === 'neubau' || get(A.daten, 'eingabe.erwerb.sonderAfA7b') === 'ja'); }).map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('') :
-        k === 'person' ? '<div class="grid2">' + F.person.slice(0, 2).map(function (f) { return feldHtml(f, A.daten); }).join('') + '</div>' + feldHtml(F.person[2], A.daten) + feldHtml(F.person[3], A.daten) + '<div class="grid2">' + F.person.slice(4, 6).map(function (f) { return feldHtml(f, A.daten); }).join('') + '</div>' + F.person.slice(6).map(function (f) { return feldHtml(f, A.daten); }).join('') :
+        k === 'person' ? '<div class="grid2">' + F.person.slice(0, 2).map(function (f) { return feldHtml(f, A.daten); }).join('') + '</div>' + feldHtml(F.person[2], A.daten) + feldHtml(F.person[3], A.daten) + '<div class="grid2">' + F.person.slice(4, 6).map(function (f) { return feldHtml(f, A.daten); }).join('') + '</div>' + F.person.slice(6).map(function (f) { return feldHtml(f, A.daten); }).join('') + einkommenHtml(A.daten) :
           F[k].map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('')) + '</div>';
       var intro = {
         wohnung: 'Die meisten Angaben stehen im Kaufvertrag.' + (a.vertrieb_id ? ' Was Ihr Vertrieb schon eingetragen hat, ist markiert. Bitte prüfen Sie es kurz.' : ' Unter jedem Feld steht, wo Sie die Zahl finden.'),
@@ -740,6 +756,101 @@
       var f2 = $('#luftbild'); if (f2) f2.innerHTML = '<div class="lb-frage"><span>Das Luftbild ist für diese Adresse gerade nicht verfügbar.</span></div>';
     }
   }
+
+  function einkommenHtml(D) {
+    var E = F.einkommen, f = function (x) { return feldHtml(x, D); };
+    return '<div class="note info"><span><b>Genau statt geschätzt</b>Mit den Werten aus Ihrer Lohnsteuerbescheinigung rechnen wir Ihre Steuerersparnis exakt, mit Solidaritätszuschlag und Kirchensteuer. Alles freiwillig.</span></div>' +
+      f(E[0]) + '<div class="grid2">' + f(E[1]) + f(E[2]) + '</div><div class="grid2">' + f(E[3]) + f(E[4]) + '</div><div class="grid2">' + f(E[5]) + f(E[6]) + '</div>' +
+      '<div class="grid2">' + f(E[7]) + f(E[8]) + '</div>' + f(E[9]);
+  }
+
+  /* Vorabrechnung für Vertriebe: exakt rechnen statt Circa-Werte, nichts wird gespeichert */
+  var VRF = [
+    { p: 'eingabe.erwerb.kaufpreis', l: 'Kaufpreis', t: 'eur' },
+    { p: 'eingabe.erwerb.nebenkosten', l: 'Kaufnebenkosten', t: 'eur', h: 'Grunderwerbsteuer, Notar, Grundbuch, Makler.' },
+    { p: 'eingabe.erwerb.gebaeudeanteil', l: 'Gebäudeanteil laut Kaufvertrag', t: 'pct', h: 'Leer lassen, wenn noch offen. Dann schätzen wir ihn aus dem Bodenrichtwert.' },
+    { p: 'eingabe.erwerb.bodenrichtwert', l: 'Bodenrichtwert', t: 'num', suf: '€/m²', h: 'Aus BORIS, dem Bodenrichtwert-Portal Ihres Bundeslands.' },
+    { p: 'eingabe.erwerb.grundstueckQm', l: 'Grundstücksfläche gesamt', t: 'num', suf: 'm²' },
+    { p: 'eingabe.erwerb.meaZaehler', l: 'Miteigentumsanteil', t: 'num', suf: '/10.000', h: 'Aus der Teilungserklärung, zum Beispiel 312 für 312/10.000.' },
+    { p: 'eingabe.objekt.wohnflaeche', l: 'Wohnfläche', t: 'num', suf: 'm²' },
+    { p: 'eingabe.erwerb.fertigJahr', l: 'Baujahr oder Fertigstellung', t: 'year' },
+    { p: 'eingabe.erwerb.uebergang', l: 'Übergang von Nutzen und Lasten', t: 'date' },
+    { p: 'eingabe.erwerb.afaMethode', l: 'Abschreibung', t: 'select', opts: [['linear', 'Linear'], ['degressiv', 'Degressiv 5% (Neubau)']] },
+    { p: 'eingabe.erwerb.baubeginn', l: 'Baubeginn (für degressiv)', t: 'date' },
+    { p: 'eingabe.erwerb.kaufvertrag', l: 'Datum Kaufvertrag (für degressiv)', t: 'date' },
+    { p: 'eingabe.miete.kaltMonat', l: 'Kaltmiete pro Monat', t: 'eur' },
+    { p: 'eingabe.miete.umlagenMonat', l: 'Nebenkosten-Vorauszahlung pro Monat', t: 'eur' },
+    { p: 'eingabe.finanzierung.darlehen.0.betrag', l: 'Darlehen', t: 'eur' },
+    { p: 'eingabe.finanzierung.darlehen.0.zins', l: 'Sollzins', t: 'pct' },
+    { p: 'eingabe.finanzierung.darlehen.0.tilgung', l: 'Anfängliche Tilgung', t: 'pct' },
+    { p: 'eingabe.hausgeld.monat', l: 'Hausgeld pro Monat', t: 'eur' },
+    { p: 'eingabe.hausgeld.umlagefaehigMonat', l: 'davon umlagefähig', t: 'eur' },
+    { p: 'eingabe.hausgeld.ruecklageMonat', l: 'davon Erhaltungsrücklage', t: 'eur' },
+    { p: 'eingabe.personen.einkommen.brutto', l: 'Bruttojahresgehalt des Käufers', t: 'eur' },
+    { p: 'eingabe.personen.einkommen.svGesamt', l: 'Sozialversicherung im Jahr, Arbeitnehmeranteil gesamt', t: 'eur', h: 'Von der Gehaltsabrechnung. Leer lassen, dann rechnen wir mit rund 20% vom Brutto.' },
+    { p: 'eingabe.personen.einkommen.kirche', l: 'Kirchensteuer', t: 'select', opts: [['0', 'Nein'], ['0.09', 'Ja, 9%'], ['0.08', 'Ja, 8%']] },
+    { p: 'eingabe.personen.einkommen.zusammen', l: 'Veranlagung', t: 'select', opts: [['', 'Einzeln'], ['1', 'Zusammen']] },
+    { p: 'eingabe.personen.einkommen.partner.brutto', l: 'Bruttojahresgehalt Partner', t: 'eur' }
+  ];
+  var VR = null;
+  function vrNeu() {
+    var j = new Date().getFullYear();
+    return { eingabe: { vz: j + 1, objekt: { nutzung: 'dauer' }, erwerb: { uebergang: (j + 1) + '-01-01', afaMethode: 'linear', fertigJahr: j + 1 }, miete: {}, finanzierung: { darlehen: [{ tilgung: 0.02 }] }, hausgeld: {}, personen: { anteilA: 1, einkommen: { kirche: '0' } } } };
+  }
+  function vrRechnen() {
+    var ein = clone(VR.eingabe), e = ein.erwerb || {};
+    var ueJ = parseInt(String(e.uebergang || '').slice(0, 4), 10) || new Date().getFullYear() + 1;
+    var ek = ein.personen.einkommen || {};
+    if (num(ek.brutto) && ek.svGesamt == null) ek.svGesamt = Math.min(num(ek.brutto), 101400) * 0.2;
+    if (ek.partner && num(ek.partner.brutto) && ek.partner.svGesamt == null) ek.partner.svGesamt = Math.min(num(ek.partner.brutto), 101400) * 0.2;
+    if (!e.kaufvertrag) e.kaufvertrag = e.uebergang;
+    ein.vz = ueJ + 1; ein.kanzlei = { quittiert: [] }; ein._ohneFreibetrag = true;
+    var r = Kern.berechne(ein);
+    var dl = (ein.finanzierung.darlehen || [])[0] || {};
+    var rate = num(dl.betrag) * (num(dl.zins) + num(dl.tilgung)) / 12;
+    var steuer = null;
+    if (num(ek.brutto)) { var o = Kern.steuer.ausEinkommen(ek, 0), m = Kern.steuer.ausEinkommen(ek, r.summen.ueberschuss); steuer = { ohne: o, mit: m, ersparnis: r2(o.summe - m.summe) }; }
+    var mieteMonat = num(ein.miete.kaltMonat) + num(ein.miete.umlagenMonat);
+    var vorSteuer = mieteMonat - num(ein.hausgeld.monat) - rate;
+    return { r: r, jahr: ueJ + 1, rate: rate, steuer: steuer, vorSteuer: vorSteuer, nachSteuer: steuer ? vorSteuer + steuer.ersparnis / 12 : null };
+  }
+  function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
+  function r2(x) { return Math.round(x * 100) / 100; }
+  function vrErgebnisHtml() {
+    var x; try { x = vrRechnen(); } catch (err) { return '<p class="small muted">Für die Rechnung fehlen noch Angaben.</p>'; }
+    var r = x.r, s = x.steuer;
+    if (!num(get(VR, 'eingabe.erwerb.kaufpreis'))) return '<p class="small muted">Tragen Sie mindestens Kaufpreis, Miete und Finanzierung ein. Das Ergebnis erscheint dann hier.</p>';
+    var wichtig = r.hinweise.filter(function (h) { return (h.ampel === 'gelb' || h.ampel === 'rot') && !/^P03|^K|^P06|^P05|^P15/.test(h.id); });
+    return '<div class="kpis">' +
+      '<div class="card kpi dark"><strong class="num">' + (s ? eur(s.ersparnis / 12) : '?') + '</strong><span>Steuerersparnis im Monat, ' + x.jahr + '</span></div>' +
+      '<div class="card kpi"><strong class="num">' + eur(x.vorSteuer) + '</strong><span>Monatlich vor Steuern</span></div>' +
+      '<div class="card kpi"><strong class="num">' + (x.nachSteuer != null ? eur(x.nachSteuer) : '?') + '</strong><span>Monatlich nach Steuern</span></div></div>' +
+      '<div class="card pad stack"><h3 class="h3">So kommt das Ergebnis zustande</h3><div class="tw"><table><tbody>' +
+      [['Mieteinnahmen im Jahr', r.summen.einnahmen], ['Werbungskosten im Jahr', -r.summen.werbungskosten], ['davon Abschreibung', -(r.betrag('35') + r.betrag('45'))], ['davon Schuldzinsen', -r.betrag('48')], ['Ergebnis Vermietung', r.summen.ueberschuss]].map(function (z) { return '<tr><td>' + z[0] + '</td><td class="r num">' + eur(z[1]) + '</td></tr>'; }).join('') +
+      (s ? '<tr><td>Steuer ohne Wohnung</td><td class="r num">' + eur(s.ohne.summe) + '</td></tr><tr><td>Steuer mit Wohnung</td><td class="r num">' + eur(s.mit.summe) + '</td></tr><tr class="sum"><td>Ersparnis im Jahr</td><td class="r num">' + eur(s.ersparnis) + '</td></tr>' : '') +
+      '<tr><td>Darlehensrate im Monat</td><td class="r num">' + eur(x.rate) + '</td></tr></tbody></table></div>' +
+      '<p class="tiny">Erstes volles Jahr ' + x.jahr + '. Einkommensteuer nach Tarif 2026 mit Solidaritätszuschlag' + (num(get(VR, 'eingabe.personen.einkommen.kirche')) ? ' und Kirchensteuer' : '') + '. Ohne weitere Einkünfte, Kinder und Sonderausgaben. Vorabrechnung, keine Steuerberatung.</p></div>' +
+      (wichtig.length ? '<div class="stack-s">' + wichtig.map(function (h) { return '<div class="note ' + (h.ampel === 'rot' ? 'bad' : 'warn') + '"><span><b>' + esc(h.titel) + '</b>' + esc(h.text) + '</span></div>'; }).join('') + '</div>' : '');
+  }
+  function viewVorabrechnung() {
+    if (!VR) VR = vrNeu();
+    var D = VR, f = function (x) { return feldHtml(x, D, null, 'vr' + x.p.replace(/\W/g, '_')); }, V = VRF;
+    var grp = function (t, felder) { return '<section class="card pad stack"><h2 class="h3">' + t + '</h2><div class="grid2">' + felder.map(f).join('') + '</div></section>'; };
+    mount('<div class="wrap stack">' + kopfBild('finanzierung', '<span class="eyebrow">Vorabrechnung</span><h1 class="title">Was bringt die Wohnung wirklich?</h1>', 'klein') +
+      '<p class="lead">Rechnen Sie mit den echten Zahlen Ihres Kunden statt mit einem pauschalen Steuersatz. Nichts wird gespeichert.</p>' +
+      '<div class="split"><form class="stack" id="fVR" novalidate onsubmit="return false">' +
+      grp('Kauf', [V[0], V[1], V[6], V[7], V[8], V[9]]) + grp('Gebäudeanteil', [V[2], V[3], V[4], V[5]]) + grp('Neubau, nur für degressive AfA', [V[10], V[11]]) +
+      grp('Miete und Hausgeld', [V[12], V[13], V[17], V[18], V[19]]) + grp('Finanzierung', [V[14], V[15], V[16]]) + grp('Einkommen des Käufers', [V[20], V[21], V[22], V[23], V[24]]) +
+      '<div class="row"><button class="btn sec" type="button" data-act="vrNeu">Neu beginnen</button><button class="btn ghost" type="button" data-act="drucken">Drucken oder als PDF</button></div></form>' +
+      '<div class="stack vr-ergebnis" id="vrErg">' + vrErgebnisHtml() + '</div></div>' +
+      '<a class="vr-kurz" id="vrKurz" href="#vrErg">' + vrKurzHtml() + '</a></div>', 'Vorabrechnung');
+  }
+  function vrKurzHtml() {
+    var x; try { x = vrRechnen(); } catch (err) { return '<span>Ergebnis</span><b>noch offen</b>'; }
+    if (!num(get(VR, 'eingabe.erwerb.kaufpreis'))) return '<span>Ergebnis</span><b>noch offen</b>';
+    return '<span>Ersparnis ' + (x.steuer ? eur(x.steuer.ersparnis / 12) : '?') + ' im Monat</span><b>' + (x.nachSteuer != null ? eur(x.nachSteuer) : eur(x.vorSteuer)) + ' nach Steuern</b>';
+  }
+  var vrAktualisieren = debounce(function () { var b = $('#vrErg'); if (b) b.innerHTML = vrErgebnisHtml(); var k = $('#vrKurz'); if (k) k.innerHTML = vrKurzHtml(); }, 250);
 
   /* Miete mit Mieterwechsel oder Leerstand */
   function mieteHtml() {
@@ -926,7 +1037,7 @@
       if (el) { el.className = 'saved ok'; el.textContent = 'Gespeichert'; }
     } catch (e) { if (el) { el.className = 'saved'; el.textContent = 'Nicht gespeichert'; } fehler(e); }
   }, 600);
-  function feldDef(p) { var all = [].concat(F.wohnung, F.miete, F.finanzierung, F.hausgeld, F.person); return all.filter(function (f) { return f.p === p; })[0]; }
+  function feldDef(p) { var all = [].concat(F.wohnung, F.miete, F.finanzierung, F.hausgeld, F.person, F.einkommen, VRF); return all.filter(function (f) { return f.p === p; })[0]; }
   function pruefeFeld(input, final) {
     var f = feldDef(input.dataset.p) || { t: input.dataset.t, p: input.dataset.p };
     var box = input.closest('.field'), msg = box && box.querySelector('.errmsg');
@@ -1031,7 +1142,7 @@
         (h.ampel === 'rot' && editierbar ? '<label class="check" style="padding:4px 0 0"><input type="checkbox" data-act="quitt" data-id="' + h.id + '"' + (q_ ? ' checked' : '') + '> <span class="small">Geprüft, Freigabe trotzdem möglich</span></label>' : '') + '</div>';
     }).join('') : '<p class="small">Die Berechnung braucht noch Angaben.</p>';
     var korr = editierbar ? '<details class="card pad"><summary class="h3" style="cursor:pointer">Werte korrigieren</summary><form class="stack" id="fKorr" novalidate onsubmit="return false" style="margin-top:14px"><div class="grid2">' +
-      ['eingabe.erwerb.gebaeudeanteil', 'eingabe.erwerb.afaMethode', 'eingabe.erwerb.kaufpreis', 'eingabe.erwerb.nebenkosten', 'eingabe.erwerb.fertigJahr', 'eingabe.erwerb.baubeginn', 'eingabe.miete.kaltMonat', 'eingabe.miete.umlagenMonat', 'eingabe.finanzierung.darlehen.0.zinsenLautBescheinigung', 'eingabe.finanzierung.geldbeschaffungskosten', 'eingabe.hausgeld.monat', 'eingabe.hausgeld.umlagefaehigMonat', 'eingabe.hausgeld.ruecklageMonat', 'eingabe.erwerb.ruecklageImKaufpreis', 'eingabe.objekt.wohnflaeche', 'eingabe.erwerb.sonderAfA7b', 'eingabe.erwerb.bauantrag', 'eingabe.erwerb.eh40qng', 'eingabe.erwerb.rndGutachten', 'eingabe.erwerb.restnutzungsdauer'].map(function (p) { var f = Object.assign({}, feldDef(p)); delete f.h; return feldHtml(f, A.daten, null, 'k' + p.replace(/\W/g, '_')); }).join('') +
+      ['eingabe.erwerb.gebaeudeanteil', 'eingabe.erwerb.afaMethode', 'eingabe.erwerb.kaufpreis', 'eingabe.erwerb.nebenkosten', 'eingabe.erwerb.fertigJahr', 'eingabe.erwerb.baubeginn', 'eingabe.miete.kaltMonat', 'eingabe.miete.umlagenMonat', 'eingabe.finanzierung.darlehen.0.zinsenLautBescheinigung', 'eingabe.finanzierung.geldbeschaffungskosten', 'eingabe.hausgeld.monat', 'eingabe.hausgeld.umlagefaehigMonat', 'eingabe.hausgeld.ruecklageMonat', 'eingabe.erwerb.ruecklageImKaufpreis', 'eingabe.objekt.wohnflaeche', 'eingabe.erwerb.sonderAfA7b', 'eingabe.erwerb.bauantrag', 'eingabe.erwerb.eh40qng', 'eingabe.erwerb.rndGutachten', 'eingabe.erwerb.restnutzungsdauer', 'eingabe.erwerb.bodenrichtwert', 'eingabe.erwerb.grundstueckQm', 'eingabe.erwerb.meaZaehler'].map(function (p) { var f = Object.assign({}, feldDef(p)); delete f.h; return feldHtml(f, A.daten, null, 'k' + p.replace(/\W/g, '_')); }).join('') +
       '</div><p class="tiny" id="saved" aria-live="polite">Änderungen werden gespeichert und protokolliert.</p></form></details>' : '';
     var blockiert = res && res.freigabe && !res.freigabe.moeglich;
     mount('<div class="wrap stack"><a class="link small" href="#/kanzlei">← Alle Fälle</a>' +
@@ -1199,6 +1310,7 @@
           '<span class="row" style="margin-top:8px"><span class="inp" style="flex:1;min-width:0"><input readonly value="' + esc(link) + '" aria-label="Anmeldelink" onclick="this.select()"></span><button class="btn sm" type="button" data-act="aliasKopieren" data-v="' + esc(link) + '">Kopieren</button></span></span></div></li>');
         return;
       }
+      if (act === 'vrNeu') { VR = vrNeu(); viewVorabrechnung(); return; }
       if (act === 'kfilter') { KFILTER = b.dataset.v; kontoAnzeigeNeu(); return; }
       if (act === 'kontoPrivat') {
         var kp = get(A.daten, 'eingabe.konto'), np = 0;
@@ -1287,6 +1399,7 @@
       if (r.ok) { set(A.daten, t.dataset.p, r.v); if (t.closest('#fKorr')) korrSpeichern(); else speichern(); }
     }
     if (t.matches('#fUeb [data-p]')) { var r2 = pruefeFeld(t, false); if (r2.ok) set(VNEU, t.dataset.p, r2.v); }
+    if (t.matches('#fVR [data-p]')) { var r3 = pruefeFeld(t, false); if (r3.ok) { set(VR, t.dataset.p, r3.v); vrAktualisieren(); } }
   });
   document.addEventListener('focusout', function (e) {
     var t = e.target;
@@ -1298,6 +1411,7 @@
   document.addEventListener('change', async function (e) {
     var t = e.target;
     try {
+      if (t.matches('#fVR select[data-p]')) { set(VR, t.dataset.p, t.value || null); vrAktualisieren(); return; }
       if (t.matches('select[data-p]')) { var r = pruefeFeld(t, false); if (t.closest('#fUeb')) set(VNEU, t.dataset.p, r.v); else { set(A.daten, t.dataset.p, r.v); if (t.closest('#fKorr')) korrSpeichern(); else speichern(); } }
       if (t.matches('[data-act="upload"]')) { var n = await hochladen(t.files, t.dataset.typ, 'kaeufer', A.akte.id); t.value = ''; if (n) { toast(n === 1 ? 'Datei hochgeladen' : n + ' Dateien hochgeladen'); viewAbschnitt(A.akte.id, 'unterlagen'); } }
       if (t.id === 'u_files') { Array.prototype.forEach.call(t.files, function (f) { VNEU.files.push({ file: f, typ: rateTyp(f.name) }); }); t.value = ''; vListe(); }

@@ -517,6 +517,18 @@
     var nk = typeof e.nebenkosten === 'object' && e.nebenkosten ? Object.keys(e.nebenkosten).reduce(function (s, k) { return s + num(e.nebenkosten[k]); }, 0) : num(e.nebenkosten);
     var anteil = num(e.gebaeudeanteil);
     if (anteil > 1) anteil = anteil / 100;
+    var bws = bodenwertSchaetzung(e, num(e.kaufpreis) - num(e.ruecklageImKaufpreis) - inventarImKP);
+    if (bws) {
+      if (!anteil) {
+        anteil = Math.round(bws.anteilGebaeude * 10000) / 10000;
+        e.quelleAufteilung = 'Schätzung aus dem Bodenrichtwert';
+        hinweis('P09c', 'gelb', 'Gebäudeanteil geschätzt', 'Kein Gebäudeanteil im Kaufvertrag. Aus dem Bodenrichtwert ergibt sich ein Grundstückswert von ' + eur(Math.round(bws.bodenwert)) + ', also ' + pct(bws.anteilBoden) + ' des Kaufpreises. Gerechnet ist mit ' + pct(anteil) + ' Gebäudeanteil. Die Kanzlei prüft das mit der Arbeitshilfe des BMF.', 'BMF-Arbeitshilfe Kaufpreisaufteilung');
+      } else if (anteil > bws.anteilGebaeude + 0.1) {
+        hinweis('P09b', 'gelb', 'Gebäudeanteil im Vertrag hoch angesetzt', 'Laut Kaufvertrag ' + pct(anteil) + ' Gebäude. Nach dem Bodenrichtwert liegt der Grundstücksanteil bei rund ' + pct(bws.anteilBoden) + ', das Gebäude also eher bei ' + pct(bws.anteilGebaeude) + '. Das Finanzamt kann die vertragliche Aufteilung dann verwerfen (BFH, IX R 26/19). Die Kanzlei prüft das vor der Freigabe.', 'BMF-Arbeitshilfe Kaufpreisaufteilung');
+      } else {
+        hinweis('P09b', 'ok', 'Gebäudeanteil plausibel', 'Nach dem Bodenrichtwert liegt der Grundstücksanteil bei rund ' + pct(bws.anteilBoden) + '. Der Gebäudeanteil laut Vertrag passt dazu.', '');
+      }
+    }
     var akGeb = 0, afaZeile = null, afaInfo = {}, sonder7b = null, sonderVZ = 0;
     var zugaenge = {};
     var grenze15 = 0, anschaffungsnah = false;
@@ -743,6 +755,63 @@
     return ergebnis;
   }
 
+  /* ---------- Einkommensteuer exakt (Tarif 2026, § 32a EStG) ---------- */
+  // Formeln laut § 32a Abs. 1 EStG für den VZ 2026. Für spätere Jahre gilt der jeweils letzte bekannte Tarif.
+  function tarif2026(zve) {
+    var x = Math.floor(Math.max(0, zve));
+    if (x <= 12348) return 0;
+    if (x <= 17799) { var y = (x - 12348) / 10000; return Math.floor((914.51 * y + 1400) * y); }
+    if (x <= 69878) { var z = (x - 17799) / 10000; return Math.floor((173.10 * z + 2397) * z + 1034.87); }
+    if (x <= 277825) return Math.floor(0.42 * x - 11135.63);
+    return Math.floor(0.45 * x - 19470.38);
+  }
+  // Solidaritätszuschlag mit Freigrenze und Milderungszone (§ 3 Abs. 3, § 4 SolzG), Freigrenze 2026 je Person 20.350 €
+  function soli(est, zusammen) {
+    var frei = zusammen ? 40700 : 20350;
+    if (est <= frei) return 0;
+    return r2(Math.min(est * 0.055, (est - frei) * 0.119));
+  }
+  function steuerGesamt(zve, opt) {
+    opt = opt || {};
+    var est = opt.zusammen ? 2 * tarif2026(zve / 2) : tarif2026(zve);
+    var so = soli(est, opt.zusammen), ki = r2(est * num(opt.kirche));
+    return { zve: Math.round(zve), est: est, soli: so, kirche: ki, summe: r2(est + so + ki) };
+  }
+  // zu versteuerndes Einkommen aus Arbeitslohn: Brutto − Arbeitnehmer-Pauschbetrag − Vorsorgeaufwendungen − Sonderausgaben-Pauschbetrag
+  // Vorsorge: Rentenversicherung voll, Kranken- 96% (Krankengeldanteil), Pflegeversicherung voll, Arbeitslosenversicherung meist schon durch den Höchstbetrag ausgeschöpft
+  function zveAusLohn(p) {
+    p = p || {};
+    var brutto = num(p.brutto);
+    if (!brutto) return 0;
+    var wk = Math.max(1230, num(p.werbungskosten));
+    var vorsorge, basis;
+    if (p.svGesamt != null && !num(p.rv) && !num(p.kv)) {
+      // nur Gesamtsumme bekannt: Arbeitslosenversicherung (rund 6% der Summe) und 4% der Krankenversicherung herausrechnen
+      vorsorge = num(p.svGesamt) * 0.925;
+    } else {
+      vorsorge = num(p.rv) + 0.96 * num(p.kv) + num(p.pv);
+      basis = num(p.kv) + num(p.pv);
+      if (basis < 1900) vorsorge += Math.min(num(p.av), 1900 - basis);
+    }
+    return Math.max(0, brutto - wk - vorsorge - 36);
+  }
+  function steuerAusEinkommen(ek, zusatz) {
+    // ek: { brutto, rv, kv, pv, av, kirche (0, 0.08, 0.09), zusammen, partner: {brutto, rv, kv, pv, av}, sonstigeEinkuenfte }
+    var zve = zveAusLohn(ek) + num(ek.sonstigeEinkuenfte) + num(zusatz);
+    if (ek.zusammen) zve += zveAusLohn(ek.partner || {});
+    return steuerGesamt(zve, { zusammen: !!ek.zusammen, kirche: ek.kirche });
+  }
+  function hatEinkommen(ek) { return !!ek && num(ek.brutto) > 0; }
+
+  /* ---------- Grundstücksanteil aus dem Bodenrichtwert ---------- */
+  function bodenwertSchaetzung(e, kaufpreisNetto) {
+    var brw = num(e.bodenrichtwert), qm = num(e.grundstueckQm), zaehler = num(e.meaZaehler), nenner = num(e.meaNenner) || 10000;
+    var mea = zaehler / nenner;
+    if (!brw || !qm || !zaehler || !kaufpreisNetto) return null;
+    var boden = brw * qm * mea;
+    return { bodenwert: r2(boden), anteilBoden: boden / kaufpreisNetto, anteilGebaeude: Math.max(0, 1 - boden / kaufpreisNetto) };
+  }
+
   /* ---------- Freibetrag (Lohnsteuer-Ermäßigung) für das Folgejahr ---------- */
   function schaetzeFreibetrag(eingabe, erg) {
     var i = clone(eingabe), e = i.erwerb || {};
@@ -768,20 +837,27 @@
     p.kanzlei = {};
     var r = berechne(p);
     var verlust = Math.max(0, -r.summen.ueberschuss);
-    var gs = (i.personen || {}).grenzsteuersatz;
-    var wirkung = gs != null ? verlust * num(gs) : null;
+    var pers = i.personen || {}, gs = pers.grenzsteuersatz, ek = pers.einkommen, genau = hatEinkommen(ek);
+    var wirkung = null, ohne = null, mit = null;
+    if (genau) {
+      ohne = steuerAusEinkommen(ek, 0); mit = steuerAusEinkommen(ek, r.summen.ueberschuss);
+      wirkung = r2(ohne.summe - mit.summe);
+    } else if (gs != null) wirkung = verlust * num(gs);
     return {
       jahr: jahr, abJahrMoeglich: abJahr,
       geschaetzteEinkuenfte: r.summen.ueberschuss, freibetrag: verlust,
       steuerwirkungJahr: wirkung, steuerwirkungMonat: wirkung != null ? wirkung / 12 : null,
+      genau: genau, steuerOhne: ohne, steuerMit: mit, effektiverSatz: genau && verlust ? wirkung / verlust : null,
       hinweis: verlust > 0
-        ? 'Antrag auf Lohnsteuer-Ermäßigung für ' + jahr + '. Negative Einkünfte aus einem Gebäude wirken erst ab dem Jahr nach Anschaffung oder Fertigstellung' + (hat7b(e) ? ', bei § 7b schon im Anschaffungsjahr' : '') + '. Mit Freibetrag ist jedes Jahr eine Erklärung Pflicht. Schätzung ohne Kirchensteuer und Solidaritätszuschlag.'
+        ? 'Antrag auf Lohnsteuer-Ermäßigung für ' + jahr + '. Negative Einkünfte aus einem Gebäude wirken erst ab dem Jahr nach Anschaffung oder Fertigstellung' + (hat7b(e) ? ', bei § 7b schon im Anschaffungsjahr' : '') + '. Mit Freibetrag ist jedes Jahr eine Erklärung Pflicht. ' +
+          (genau ? 'Ersparnis exakt aus Ihrem Einkommen gerechnet, mit Solidaritätszuschlag' + (num(ek.kirche) ? ' und Kirchensteuer' : '') + ', Tarif 2026.' : 'Schätzung über den Grenzsteuersatz, ohne Kirchensteuer und Solidaritätszuschlag.')
         : 'Kein Verlust erwartet, ein Freibetrag kommt nicht in Betracht.',
       rechtsgrundlage: '§ 37 Abs. 3, § 39a Abs. 1 Nr. 5 Buchst. b, § 46 Abs. 2 Nr. 4 EStG'
     };
   }
 
-  return { version: VERSION, berechne: berechne, pruefe7b: pruefe7b, mieteAusVertraegen: function (v, vz, ueb, ende) { return mieteAusVertraegen(v, vz, parseDatum(ueb), parseDatum(ende)); },
+  return { version: VERSION, berechne: berechne, pruefe7b: pruefe7b,
+    steuer: { tarif: tarif2026, soli: soli, gesamt: steuerGesamt, zveAusLohn: zveAusLohn, ausEinkommen: steuerAusEinkommen }, bodenwert: bodenwertSchaetzung, mieteAusVertraegen: function (v, vz, ueb, ende) { return mieteAusVertraegen(v, vz, parseDatum(ueb), parseDatum(ende)); },
     konto: { KAT: KAT, einlesen: kontoEinlesen, csv: parseCsvKonto, camt: parseCamt, betrag: parseBetrag, regel: kontoRegel, zuordnen: kontoZuordnen, jahr: zuordnungsJahr, verdichten: kontoVerdichten, kontext: kontoKontext, monat: monatAusText },
     afaVerlauf: function (p, bis) { var q = clone(p); q.beginn = parseDatum(p.beginn); q.ende = parseDatum(p.ende); return afaVerlauf(q, bis); }, wgVerlauf: wgVerlauf, pruefeDegressiv: pruefeDegressiv, typSatz: typSatz, _intern: { einnahme: einnahme, werbung: werbung, kfm: kfm, monateImJahr: function (b, j, e) { return monateImJahr(parseDatum(b), j, parseDatum(e)); } } };
 }));
