@@ -221,8 +221,11 @@
     stapel: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>'
   };
   // Fotos je Schritt (Unsplash-Lizenz, liegen in assets/bilder)
-  var BILD = { fallcheck: 'anmeldung', wohnung: 'kauf', miete: 'miete', finanzierung: 'finanzierung', hausgeld: 'hausgeld', unterlagen: 'unterlagen', person: 'willkommen', auftrag: 'anmeldung', konto: 'unterlagen' };
+  var BILD = { fallcheck: 'anmeldung', wohnung: 'kauf', miete: 'miete', finanzierung: 'finanzierung', hausgeld: 'hausgeld', unterlagen: 'unterlagen', person: 'willkommen', auftrag: 'anmeldung', konto: 'unterlagen', vertrieb: 'willkommen', uebergabe: 'kauf' };
   function bildVon(k) { return 'assets/bilder/' + (BILD[k] || 'anmeldung') + '.webp'; }
+  function kopfBild(k, inhalt, art) {
+    return '<header class="objektkopf ' + (art || 'schritt') + '"><div class="ok-bild" aria-hidden="true" style="background-image:linear-gradient(180deg,rgba(17,17,17,.12) 0%,rgba(17,17,17,.45) 50%,rgba(17,17,17,.93) 100%),url(\'' + bildVon(k) + '\')"></div><div class="ok-text stack-s">' + inhalt + '</div></header>';
+  }
   function ico(k, cls) { return '<svg class="ico' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + (IC[k] || '') + '</svg>'; }
   var ABS = [
     { k: 'fallcheck', t: 'Passt Ihr Fall?', s: 'Vier kurze Fragen, eine Minute' },
@@ -761,8 +764,8 @@
       var a = A.akte; S.letzteAkte = id; nav();
       if (['in_erfassung', 'eingeladen', 'rueckfrage'].indexOf(a.status) < 0) { location.replace('#/akte/' + id); return; }
       mount('<div class="wrap stack"><a class="link small noprint" href="#/akte/' + id + '">← ' + esc(a.objekt_bezeichnung) + '</a>' +
-        '<div class="stack-s"><span class="eyebrow abs-kopf">' + ico('liste') + 'Freiwillig</span><h1 class="title">Kontoauszug einlesen</h1>' +
-        '<p class="lead">Laden Sie die Umsätze des Kontos hoch, über das Miete, Hausgeld und Darlehen laufen. Wir ordnen jede Zahlung zu, prüfen die Salden und rechnen daraus die Jahreswerte.</p></div>' +
+        kopfBild('konto', '<span class="eyebrow abs-kopf">' + ico('liste') + 'Freiwillig</span><h1 class="title">Kontoauszug einlesen</h1>') +
+        '<p class="lead">Laden Sie die Umsätze des Kontos hoch, über das Miete, Hausgeld und Darlehen laufen. Wir ordnen jede Zahlung zu, prüfen die Salden und rechnen daraus die Jahreswerte.</p>' +
         '<div id="kontoBox">' + kontoHtml(true, true) + '</div>' +
         '<div class="savebar noprint"><div class="inner"><a class="btn" href="#/akte/' + id + '">Fertig</a><span class="spacer"></span><span class="saved" id="saved" aria-live="polite"></span></div></div></div>', 'Kontoauszug');
     } catch (e) { fehler(e); }
@@ -932,7 +935,7 @@
     try {
       var rows = q(await sb.rpc('vertrieb_akten'));
       var org = S.orgs.filter(function (o) { return o.id === S.profil.organisation_id; })[0];
-      mount('<div class="wrap stack"><div class="row" style="align-items:flex-end"><div class="stack-s"><span class="eyebrow">' + esc(org ? org.name : 'Vertrieb') + '</span><h1 class="title">Ihre Käufer</h1></div><span class="spacer"></span><a class="btn gold" href="#/vertrieb/neu">+ Käufer übergeben</a></div>' +
+      mount('<div class="wrap stack">' + kopfBild('vertrieb', '<span class="eyebrow">' + esc(org ? org.name : 'Vertrieb') + '</span><h1 class="title">Ihre Käufer</h1><div class="row" style="margin-top:6px"><a class="btn gold" href="#/vertrieb/neu">+ Käufer übergeben</a></div>', 'klein') +
         (rows.length ? (function () {
           var an = rows.filter(function (a) { return a.status !== 'eingeladen'; }).length, fe = rows.filter(function (a) { return a.status === 'erledigt'; }).length;
           return '<div class="kpis"><div class="card kpi"><strong>' + rows.length + '</strong><span>übergeben</span></div><div class="card kpi"><strong>' + an + '</strong><span>angenommen, ' + Math.round(an / rows.length * 100) + '%</span></div><div class="card kpi dark"><strong>' + fe + '</strong><span>erledigt</span></div></div>';
@@ -949,7 +952,7 @@
     var jahr = new Date().getFullYear();
     var kauf = F.wohnung.filter(function (f) { return !f.neubau && !f.bestand && ['eingabe.objekt.adresse', 'eingabe.erwerb.afaMethode'].indexOf(f.p) < 0; });
     var mk = function (f) { var g = Object.assign({}, f, { req: f.req && /kaufpreis|uebergang|kaufvertrag/.test(f.p) ? 1 : 0, p: f.p }); return feldHtml(g, { eingabe: VNEU.eingabe }, null, 'v' + f.p.replace(/\W/g, '_')); };
-    mount('<div class="wrap narrow stack"><a class="link small" href="#/vertrieb">← Ihre Käufer</a><div class="stack-s"><span class="eyebrow">Übergabe</span><h1 class="title">Käufer übergeben</h1><p class="lead">Was Sie hier eintragen, muss Ihr Käufer nicht mehr suchen. Alles außer Name, E-Mail und Wohnung ist freiwillig.</p></div>' +
+    mount('<div class="wrap narrow stack"><a class="link small" href="#/vertrieb">← Ihre Käufer</a>' + kopfBild('uebergabe', '<span class="eyebrow">Übergabe</span><h1 class="title">Käufer übergeben</h1>', 'schritt') + '<p class="lead">Was Sie hier eintragen, muss Ihr Käufer nicht mehr suchen. Alles außer Name, E-Mail und Wohnung ist freiwillig.</p>' +
       '<form class="stack" id="fUeb" novalidate>' +
       '<section class="card pad stack"><h2 class="h3">Käufer</h2><div class="grid2">' +
       '<div class="field"><label for="u_name">Name</label><div class="inp"><input id="u_name" required autocomplete="off"></div><span class="errmsg"></span></div>' +
