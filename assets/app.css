@@ -513,3 +513,30 @@ details.help[open] summary::before{transform:rotate(45deg)}
   .vr-kurz b{font-weight:800}
 }
 @media (max-width:640px){#fVR .grid2{grid-template-columns:1fr}}
+
+/* Fortschrittsbalken der Fragen: klickbar, mit Vorschau beim Drüberfahren */
+.fsegs{gap:4px;margin-bottom:6px}
+.fsegs .fseg{flex:1;position:relative;background:none;border:0;padding:8px 0;cursor:pointer;display:block}
+.fsegs .fseg i{display:block;height:6px;border-radius:99px;background:var(--line);transition:background .3s,transform .15s}
+.fsegs .fseg i.d{background:var(--black)}
+@media (prefers-color-scheme: dark){.fsegs .fseg i.d{background:#8a7a3a}}
+.fsegs .fseg i.now{background:var(--y)}
+.fsegs .fseg:hover i{transform:scaleY(1.6);background:var(--y-2)}
+.fseg-tip{position:absolute;bottom:calc(100% + 2px);left:50%;transform:translate(-50%,4px);background:var(--black);color:#fff;font-size:12.5px;font-weight:600;line-height:1.3;padding:6px 10px;border-radius:8px;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;opacity:0;pointer-events:none;transition:opacity .15s,transform .15s;z-index:20;box-shadow:0 8px 20px -8px rgba(0,0,0,.5)}
+@media (prefers-color-scheme: dark){.fseg-tip{background:#2a2a2a}}
+.fsegs .fseg:hover .fseg-tip,.fsegs .fseg:focus-visible .fseg-tip{opacity:1;transform:translate(-50%,0)}
+.fsegs .fseg:first-child .fseg-tip{left:0;transform:translate(0,4px)}
+.fsegs .fseg:first-child:hover .fseg-tip,.fsegs .fseg:first-child:focus-visible .fseg-tip{transform:translate(0,0)}
+.fsegs .fseg:last-child .fseg-tip{left:auto;right:0;transform:translate(0,4px)}
+.fsegs .fseg:last-child:hover .fseg-tip,.fsegs .fseg:last-child:focus-visible .fseg-tip{transform:translate(0,0)}
+/* Zur Übersicht in der unteren Leiste */
+.savebar .zur-uebersicht{display:inline-flex;align-items:center;gap:8px}
+.savebar .zur-uebersicht .ico{width:18px;height:18px}
+@media (max-width:640px){.savebar .zur-uebersicht{order:-1;width:100%;justify-content:center}.savebar .saved{display:none}}
+.grid2.gruppe > .legend{font-weight:750;font-size:18px;letter-spacing:-.02em}
+.fokus .grid2.gruppe{grid-template-columns:repeat(2,minmax(0,1fr))}
+.fokus .grid2.gruppe > .legend{font-size:clamp(22px,4.4vw,28px);letter-spacing:-.03em}
+.fokus .grid2.gruppe .field label{font-size:16px;font-weight:650;letter-spacing:0}
+.fokus .grid2.gruppe .inp input,.fokus .grid2.gruppe .inp select{min-height:56px;font-size:17px}
+@media (max-width:640px){.fokus .grid2.gruppe{grid-template-columns:1fr}}
+.grid2.gruppe .field label .muted{display:none}

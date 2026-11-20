@@ -167,17 +167,17 @@
       { p: 'eingabe.erwerb.kaufpreis', l: 'Kaufpreis', t: 'eur', req: 1 },
       { p: 'eingabe.erwerb.gebaeudeanteil', l: 'Anteil des Gebäudes am Kaufpreis', t: 'pct', req: 1, h: 'Laut Kaufvertrag oder Kaufpreisaufteilung. Nur das Gebäude wird abgeschrieben, Grund und Boden nicht.' },
       { p: 'eingabe.erwerb.nebenkosten', l: 'Kaufnebenkosten', t: 'eur', req: 1, h: 'Grunderwerbsteuer, Notar und Grundbuch für den Kauf, Makler. Kosten für die Grundschuld gehören zur Finanzierung.' },
-      { p: 'eingabe.erwerb.ruecklageImKaufpreis', l: 'Anteil Erhaltungsrücklage im Kaufpreis', t: 'eur', h: 'Steht manchmal im Kaufvertrag. Wenn nicht erwähnt, leer lassen.' },
-      { p: 'eingabe.inventar.0.ak', l: 'Einbauküche oder Möbel im Kaufpreis', t: 'eur', h: 'Nur wenn im Kaufvertrag ein eigener Betrag genannt ist.' },
+      { g: 'extra', p: 'eingabe.erwerb.ruecklageImKaufpreis', l: 'Anteil Erhaltungsrücklage im Kaufpreis', t: 'eur', h: 'Steht manchmal im Kaufvertrag. Wenn nicht erwähnt, leer lassen.' },
+      { g: 'extra', p: 'eingabe.inventar.0.ak', l: 'Einbauküche oder Möbel im Kaufpreis', t: 'eur', h: 'Nur wenn im Kaufvertrag ein eigener Betrag genannt ist.' },
       { p: 'eingabe.erwerb.afaMethode', l: 'Abschreibung', t: 'select', req: 1, opts: [['linear', 'Linear'], ['degressiv', 'Degressiv 5% (Neubau)']], h: 'Bei Neubauten mit Baubeginn ab Oktober 2023 ist oft die degressive Abschreibung möglich. Die Kanzlei prüft das.' },
-      { p: 'eingabe.erwerb.sonderAfA7b', l: 'Sonderabschreibung nach § 7b nutzen', t: 'select', neubau: 1, opts: [['nein', 'Nein'], ['ja', 'Ja, bitte prüfen']], h: 'Für neue Mietwohnungen mit Bauantrag ab 2023, Effizienzhaus 40 mit QNG-Siegel und Kosten des Gebäudes bis 5.200 € je m². Dann zusätzlich 5% im Jahr, vier Jahre lang. Steht oft im Exposé oder im Bauträgervertrag.' },
-      { p: 'eingabe.erwerb.bauantrag', l: 'Datum des Bauantrags', t: 'date', neubau: 1, h: 'Nur für die Sonderabschreibung nötig. Fragen Sie den Bauträger, wenn es nicht im Vertrag steht.' },
-      { p: 'eingabe.erwerb.eh40qng', l: 'Effizienzhaus 40 mit QNG-Siegel', t: 'select', neubau: 1, opts: [['ja', 'Ja'], ['nein', 'Nein'], ['unklar', 'Weiß ich nicht']], h: 'Steht im Energieausweis oder im Zertifikat zum Qualitätssiegel Nachhaltiges Gebäude.' },
-      { p: 'eingabe.erwerb.rndGutachten', l: 'Gutachten zur Restnutzungsdauer', t: 'select', bestand: 1, opts: [['nein', 'Nein'], ['ja', 'Ja, liegt vor'], ['pruefen', 'Nein, aber ich möchte wissen, ob es sich lohnt']], h: 'Das Gesetz rechnet je nach Baujahr mit 33 bis 50 Jahren Nutzungsdauer. Ist die tatsächliche Restnutzungsdauer kürzer, kann ein Gutachten die Abschreibung deutlich erhöhen. Am meisten bringt das bei älteren Gebäuden.' },
-      { p: 'eingabe.erwerb.restnutzungsdauer', l: 'Restnutzungsdauer laut Gutachten', t: 'num', suf: 'Jahre', bestand: 1, h: 'Steht im Ergebnis des Gutachtens. Nur ausfüllen, wenn ein Gutachten vorliegt.' },
-      { p: 'eingabe.erwerb.bodenrichtwert', l: 'Bodenrichtwert', t: 'num', suf: '€/m²', h: 'Freiwillig, damit prüfen wir den Gebäudeanteil. Den Wert finden Sie kostenlos in BORIS, dem Bodenrichtwert-Portal Ihres Bundeslands.' },
-      { p: 'eingabe.erwerb.grundstueckQm', l: 'Grundstücksfläche der ganzen Anlage', t: 'num', suf: 'm²', h: 'Steht im Kaufvertrag oder im Grundbuchauszug.' },
-      { p: 'eingabe.erwerb.meaZaehler', l: 'Ihr Miteigentumsanteil', t: 'num', suf: '/10.000', h: 'Steht im Kaufvertrag, zum Beispiel 312/10.000. Hier nur die erste Zahl eintragen.' }
+      { g: '7b', p: 'eingabe.erwerb.sonderAfA7b', l: 'Sonderabschreibung nach § 7b nutzen', t: 'select', neubau: 1, opts: [['nein', 'Nein'], ['ja', 'Ja, bitte prüfen']], h: 'Für neue Mietwohnungen mit Bauantrag ab 2023, Effizienzhaus 40 mit QNG-Siegel und Kosten des Gebäudes bis 5.200 € je m². Dann zusätzlich 5% im Jahr, vier Jahre lang. Steht oft im Exposé oder im Bauträgervertrag.' },
+      { g: '7b', p: 'eingabe.erwerb.bauantrag', l: 'Datum des Bauantrags', t: 'date', neubau: 1, h: 'Nur für die Sonderabschreibung nötig. Fragen Sie den Bauträger, wenn es nicht im Vertrag steht.' },
+      { g: '7b', p: 'eingabe.erwerb.eh40qng', l: 'Effizienzhaus 40 mit QNG-Siegel', t: 'select', neubau: 1, opts: [['ja', 'Ja'], ['nein', 'Nein'], ['unklar', 'Weiß ich nicht']], h: 'Steht im Energieausweis oder im Zertifikat zum Qualitätssiegel Nachhaltiges Gebäude.' },
+      { g: 'rnd', p: 'eingabe.erwerb.rndGutachten', l: 'Liegt ein Gutachten vor?', t: 'select', bestand: 1, opts: [['nein', 'Nein'], ['ja', 'Ja, liegt vor'], ['pruefen', 'Nein, aber ich möchte wissen, ob es sich lohnt']], h: 'Das Gesetz rechnet je nach Baujahr mit 33 bis 50 Jahren Nutzungsdauer. Ist die tatsächliche Restnutzungsdauer kürzer, kann ein Gutachten die Abschreibung deutlich erhöhen. Am meisten bringt das bei älteren Gebäuden.' },
+      { g: 'rnd', p: 'eingabe.erwerb.restnutzungsdauer', l: 'Restnutzungsdauer laut Gutachten', t: 'num', suf: 'Jahre', bestand: 1, h: 'Steht im Ergebnis des Gutachtens. Nur ausfüllen, wenn ein Gutachten vorliegt.' },
+      { g: 'boden', p: 'eingabe.erwerb.bodenrichtwert', l: 'Bodenrichtwert', t: 'num', suf: '€/m²', h: 'Freiwillig, damit prüfen wir den Gebäudeanteil. Den Wert finden Sie kostenlos in BORIS, dem Bodenrichtwert-Portal Ihres Bundeslands.' },
+      { g: 'boden', p: 'eingabe.erwerb.grundstueckQm', l: 'Grundstücksfläche der ganzen Anlage', t: 'num', suf: 'm²', h: 'Steht im Kaufvertrag oder im Grundbuchauszug.' },
+      { g: 'boden', p: 'eingabe.erwerb.meaZaehler', l: 'Ihr Miteigentumsanteil', t: 'num', suf: '/10.000', h: 'Steht im Kaufvertrag, zum Beispiel 312/10.000. Hier nur die erste Zahl eintragen.' }
     ],
     miete: [
       { p: 'eingabe.miete.kaltMonat', l: 'Kaltmiete pro Monat', t: 'eur', req: 1, h: 'Laut Mietvertrag, ohne Nebenkosten.' },
@@ -499,7 +499,7 @@
       await akteLaden(id); S.letzteAkte = id; nav();
       if (A.akte.status === 'eingeladen') { await sb.rpc('kaeufer_oeffnen', { p_akte: id }); A.akte.status = 'in_erfassung'; }
       var a = A.akte, offen = a.status === 'in_erfassung';
-      var kopf = '<header class="objektkopf"><div class="ok-bild" aria-hidden="true"></div><div class="ok-text stack-s"><span class="eyebrow">' + esc(a.nummer) + ', Steuerjahr ' + a.vz + '</span><h1 class="title">' + esc(a.objekt_bezeichnung) + '</h1><div class="row">' + statusChip(a.status) + '</div></div></header>';
+      var kopf = '<header class="objektkopf"><div class="ok-bild" aria-hidden="true"></div><div class="ok-text stack-s"><span class="eyebrow">' + esc(a.nummer) + ', Steuerjahr ' + a.vz + '</span><h1 class="title">' + esc(get(A.daten, 'eingabe.objekt.adresse') || a.objekt_bezeichnung) + '</h1><div class="row">' + statusChip(a.status) + '</div></div></header>';
       if (offen) {
         var n = fortschritt(), naechste = ABS.filter(function (x) { return !absFertig(x.k); })[0] || ABS[7];
         var alleFertig = n >= 7;
@@ -528,11 +528,11 @@
                 return '<li class="rein-r" style="--d:.16s"><a href="#/akte/' + id + '/wohnung/rnd"><span class="n" aria-hidden="true">' + ico('gutachten') + '</span><span class="t"><b>Gutachten zur Restnutzungsdauer</b><span>' + txt + '</span></span>' + chip + '</a></li>';
               })() + '</ul>';
           })() +
-          '<div class="note info"><span class="ic" aria-hidden="true">i</span><span><b>Wer sieht was?</b>Ihre Angaben sehen nur Sie und die Kanzlei, die Sie wählen.' + (a.vertrieb_id ? ' Ihr Vertrieb sieht keine Steuerdaten.' : '') + '</span></div></div>', a.objekt_bezeichnung);
+          '<div class="note info"><span class="ic" aria-hidden="true">i</span><span><b>Wer sieht was?</b>Ihre Angaben sehen nur Sie und die Kanzlei, die Sie wählen.' + (a.vertrieb_id ? ' Ihr Vertrieb sieht keine Steuerdaten.' : '') + '</span></div></div>', get(A.daten, 'eingabe.objekt.adresse') || a.objekt_bezeichnung);
         if (luftbildErlaubt()) luftbildStarten();
         return;
       }
-      mount('<div class="wrap narrow stack">' + kopf + '<div class="ueber stack">' + statusInhalt() + '</div>' + luftbildHtml() + '</div>', a.objekt_bezeichnung);
+      mount('<div class="wrap narrow stack">' + kopf + '<div class="ueber stack">' + statusInhalt() + '</div>' + luftbildHtml() + '</div>', get(A.daten, 'eingabe.objekt.adresse') || a.objekt_bezeichnung);
       if (luftbildErlaubt()) luftbildStarten();
     } catch (e) { fehler(e); }
   }
@@ -582,13 +582,32 @@
   }
   function ergebnisHtml(r, freigegeben) {
     var a = A.akte, sd = (A.daten && A.daten.stammdaten) || {};
+    PDF_STAND = { r: r, frei: !!freigegeben };
     return '<section class="stack" aria-labelledby="erg"><h2 class="h2" id="erg">Ihre Anlage V ' + r.vz + '</h2>' +
       '<div class="sheet"><span class="stamp' + (freigegeben ? '' : ' draft') + '">' + (freigegeben ? 'Geprüft und freigegeben<br>' + esc(kanzleiName(a.kanzlei_id)) : 'Entwurf<br>nicht geprüft') + '</span>' +
       '<div class="stack-s" style="margin-bottom:12px"><b>' + esc([sd.vorname, sd.nachname].filter(Boolean).join(' ')) + '</b><span class="small muted">' + esc(a.objekt_bezeichnung) + (freigegeben && A.pruefung ? ', freigegeben am ' + dDE(A.pruefung.freigabe_am) : '') + '</span></div>' +
       anlageVTabelle(r) + '<p class="tiny" style="margin-top:12px">Zeilen nach dem Vordruck Anlage V 2025. Beträge in vollen Euro.</p></div>' +
       freibetragHtml(r.freibetrag) +
       '<div class="card pad stack noprint"><h3 class="h3">So geht es weiter</h3><ol class="small" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Speichern Sie die Anlage V als PDF.</li><li>Tragen Sie die Werte in Mein ELSTER in die Anlage V Ihrer Einkommensteuererklärung ein oder geben Sie das PDF Ihrem Steuerberater.</li><li>Für den Freibetrag stellen Sie in Mein ELSTER einen Antrag auf Lohnsteuer-Ermäßigung.</li></ol>' +
-      '<div class="row"><button class="btn" type="button" data-act="drucken">Als PDF speichern</button></div></div></section>';
+      '<div class="row"><button class="btn" type="button" data-act="pdf">PDF herunterladen</button><button class="btn ghost" type="button" data-act="drucken">Drucken</button></div></div></section>';
+  }
+  var PDF_STAND = null;
+  function pdfLaden() {
+    if (!PDF_STAND || !window.OP_PDF) { toast('Das PDF ist gerade nicht verfügbar.', true); return; }
+    var a = A.akte, sd = (A.daten && A.daten.stammdaten) || {}, r = PDF_STAND.r;
+    var name = [sd.vorname, sd.nachname].filter(Boolean).join(' ') || a.kaeufer_name || '';
+    var blob = OP_PDF.anlageV({
+      r: r, vz: r.vz || a.vz, name: name, steuerId: sd.steuerId,
+      anschrift: [sd.strasse, [sd.plz, sd.ort].filter(Boolean).join(' ')].filter(Boolean).join(', '),
+      objekt: a.objekt_bezeichnung, nummer: a.nummer, kanzlei: kanzleiName(a.kanzlei_id),
+      freigegeben: PDF_STAND.frei, freigabeAm: A.pruefung && A.pruefung.freigabe_am ? dDE(A.pruefung.freigabe_am) : '',
+      kernVersion: (A.pruefung && A.pruefung.kern_version) || Kern.version
+    });
+    var url = URL.createObjectURL(blob), l = document.createElement('a');
+    l.href = url; l.download = ('Anlage-V-' + (r.vz || a.vz) + '-' + (sd.nachname || a.nummer || 'Wohnung')).replace(/[^\wäöüÄÖÜß.-]+/g, '-') + '.pdf';
+    document.body.appendChild(l); l.click(); l.parentNode.removeChild(l);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    if (PDF_STAND.frei && a.status === 'freigegeben' && S.profil.rolle === 'kaeufer') sb.rpc('kaeufer_abschliessen', { p_akte: a.id }).then(function () { });
   }
   function datenpaketHtml() {
     var r = rechne(A.daten, A.akte.vz, []);
@@ -623,12 +642,15 @@
     if (fokusInit._ziel) { var zi = steps.findIndex(function (el) { return el.querySelector('[data-p="' + fokusInit._ziel + '"]'); }); if (zi >= 0) start = zi; fokusInit._ziel = null; }
     FK = { k: k, steps: steps, i: start };
     box.classList.add('fokus');
-    var segs = document.createElement('div'); segs.className = 'fsegs'; segs.setAttribute('aria-hidden', 'true');
-    segs.innerHTML = steps.map(function () { return '<i></i>'; }).join(''); box.parentNode.insertBefore(segs, box);
+    var segs = document.createElement('div'); segs.className = 'fsegs'; segs.setAttribute('role', 'group'); segs.setAttribute('aria-label', 'Fragen in diesem Schritt');
+    segs.innerHTML = steps.map(function (el, j) {
+      var lb = el.querySelector('legend, .legend, label'), t = lb ? lb.textContent.replace(/\(optional\)/g, '').replace(/\s+/g, ' ').trim() : 'Frage ' + (j + 1);
+      return '<button type="button" class="fseg" data-act="fSprung" data-i="' + j + '" aria-label="' + esc('Frage ' + (j + 1) + ': ' + t) + '"><i></i><span class="fseg-tip">' + esc(t) + '</span></button>';
+    }).join(''); box.parentNode.insertBefore(segs, box);
     var bar = $('.savebar .inner');
     if (bar && !$('#fWeiter')) {
       bar.insertAdjacentHTML('afterbegin', '<button class="btn sec" type="button" data-act="fZurueck" id="fZurueck">Zurück</button><button class="btn gold" type="button" data-act="fWeiter" id="fWeiter">Weiter</button>');
-      var orig = $('[data-act="absWeiter"]'); if (orig) orig.classList.add('fk-aus'); $$('.savebar .btn.ghost').forEach(function (x) { x.classList.add('fk-aus'); });
+      var orig = $('[data-act="absWeiter"]'); if (orig) orig.classList.add('fk-aus');
       bar.insertAdjacentHTML('beforeend', '<button class="link small" type="button" data-act="fAlle">Alle Fragen auf einmal</button>');
     }
     fokusZeigen(!nachAuswahl);
@@ -636,7 +658,7 @@
   function fokusZeigen(fokus) {
     if (!FK) return;
     FK.steps.forEach(function (el, j) { el.classList.toggle('fk-aus', j !== FK.i); });
-    $$('.fsegs i').forEach(function (el, j) { el.className = j < FK.i ? 'd' : j === FK.i ? 'now' : ''; });
+    $$('.fsegs .fseg i').forEach(function (el, j) { el.className = j < FK.i ? 'd' : j === FK.i ? 'now' : ''; });
     var letzte = FK.i >= FK.steps.length - 1, w = $('#fWeiter'), z = $('#fZurueck');
     if (w) w.textContent = letzte ? 'Speichern und weiter' : 'Weiter';
     if (z) { z.disabled = false; z.title = FK.i === 0 ? 'Zum vorigen Schritt' : 'Zur vorigen Frage'; }
@@ -668,7 +690,7 @@
       else if (k === 'unterlagen') body = unterlagenHtml();
       else if (k === 'auftrag') body = auftragHtml();
       else if (k === 'miete') body = mieteHtml();
-      else body = '<div class="stack">' + (k === 'wohnung' ? '<div class="grid2">' + F.wohnung.slice(0, 2).map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('') + '</div>' + F.wohnung.slice(2).filter(function (f) { var art = (A.daten.fallcheck || {}).art; return (!f.neubau || art === 'neubau' || get(A.daten, 'eingabe.erwerb.sonderAfA7b') === 'ja'); }).map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('') :
+      else body = '<div class="stack">' + (k === 'wohnung' ? '<div class="grid2">' + F.wohnung.slice(0, 2).map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('') + '</div>' + gruppiert(F.wohnung.slice(2).filter(function (f) { var art = (A.daten.fallcheck || {}).art; return (!f.neubau || art === 'neubau' || get(A.daten, 'eingabe.erwerb.sonderAfA7b') === 'ja'); })) :
         k === 'person' ? '<div class="grid2">' + F.person.slice(0, 2).map(function (f) { return feldHtml(f, A.daten); }).join('') + '</div>' + feldHtml(F.person[2], A.daten) + feldHtml(F.person[3], A.daten) + '<div class="grid2">' + F.person.slice(4, 6).map(function (f) { return feldHtml(f, A.daten); }).join('') + '</div>' + F.person.slice(6).map(function (f) { return feldHtml(f, A.daten); }).join('') + einkommenHtml(A.daten) :
           F[k].map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('')) + '</div>';
       var intro = {
@@ -678,12 +700,32 @@
         hausgeld: 'Alle Werte stehen im Wirtschaftsplan Ihrer Hausverwaltung. Gezählt wird, was Sie im Jahr tatsächlich gezahlt haben.',
         person: 'Diese Angaben braucht die Kanzlei für die Anlage V und die Vergütungsvereinbarung.'
       }[k];
-      var weiter = k === 'auftrag' ? '' : '<div class="savebar noprint"><div class="inner"><button class="btn" type="button" data-act="absWeiter" data-k="' + k + '">Speichern und weiter</button><a class="btn ghost" href="#/akte/' + id + '">Zur Übersicht</a><span class="spacer"></span><span class="saved" id="saved" aria-live="polite"></span></div></div>';
-      mount('<div class="wrap narrow stack"><a class="link small noprint" href="#/akte/' + id + '">← ' + esc(a.objekt_bezeichnung) + '</a>' +
+      var weiter = k === 'auftrag' ? '' : '<div class="savebar noprint"><div class="inner"><button class="btn" type="button" data-act="absWeiter" data-k="' + k + '">Speichern und weiter</button><span class="spacer"></span><span class="saved" id="saved" aria-live="polite"></span><a class="btn sec zur-uebersicht" href="#/akte/' + id + '">' + ico('stapel') + 'Zur Übersicht</a></div></div>';
+      mount('<div class="wrap narrow stack">' +
         '<header class="objektkopf schritt"><div class="ok-bild" aria-hidden="true" style="background-image:linear-gradient(180deg,rgba(17,17,17,.12) 0%,rgba(17,17,17,.45) 50%,rgba(17,17,17,.93) 100%),url(\'' + bildVon(k) + '\')"></div><div class="ok-text stack-s"><span class="eyebrow abs-kopf">' + ico(k) + 'Schritt ' + (i + 1) + ' von 8</span><h1 class="title">' + abs.t + '</h1></div></header>' + (intro ? '<p class="lead">' + intro + '</p>' : '') +
         '<div id="errsum"></div><form class="stack" id="fAbs" novalidate onsubmit="return false">' + body + '</form>' + weiter + '</div>', abs.t);
       fokusInit(k);
     } catch (e) { fehler(e); }
+  }
+  // Felder mit gleicher Gruppe stehen zusammen auf einer Seite, damit der Schritt nicht zu viele Einzelfragen hat
+  var GRUPPEN = { extra: 'Rücklage und Einrichtung im Kaufpreis', '7b': 'Sonderabschreibung für Neubauten', rnd: 'Gutachten zur Restnutzungsdauer', boden: 'Grundstück, für die Prüfung des Gebäudeanteils' };
+  function gruppiert(felder) {
+    var out = '', i = 0;
+    while (i < felder.length) {
+      var g = felder[i].g;
+      if (!g) { out += feldHtml(felder[i], A.daten, A.daten.vom_vertrieb); i++; continue; }
+      var teil = [];
+      while (i < felder.length && felder[i].g === g) teil.push(felder[i++]);
+      out += '<div class="grid2 gruppe"><p class="legend" style="grid-column:1/-1;margin:0">' + GRUPPEN[g] + ' <span class="muted" style="font-weight:400">(freiwillig)</span></p>' + teil.map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('') + (g === 'rnd' ? '<div style="grid-column:1/-1">' + rndUploadHtml() + '</div>' : '') + '</div>';
+    }
+    return out;
+  }
+  function rndUploadHtml() {
+    var da = A.docs.filter(function (d) { return d.typ === 'rnd_gutachten'; });
+    return '<div class="field rnd-upload"><label>Gutachten hochladen <span class="muted" style="font-weight:400">(falls vorhanden)</span></label>' +
+      '<div class="row"><label class="btn sec sm">' + (da.length ? 'Weitere Datei' : 'Datei auswählen') + '<input type="file" class="sr" data-act="upload" data-typ="rnd_gutachten" accept="application/pdf,image/*"></label>' +
+      '<span class="small muted" id="rndDok">' + (da.length ? 'Hochgeladen: ' + da.map(function (d) { return esc(d.dateiname); }).join(', ') : 'Noch keine Datei') + '</span></div>' +
+      '<span class="tiny">Die Kanzlei prüft das Gutachten. Das automatische Auslesen der Restnutzungsdauer kommt mit der Texterkennung.</span></div>';
   }
   function fallcheckHtml() {
     var c = A.daten.fallcheck || {};
@@ -1145,6 +1187,7 @@
       ['eingabe.erwerb.gebaeudeanteil', 'eingabe.erwerb.afaMethode', 'eingabe.erwerb.kaufpreis', 'eingabe.erwerb.nebenkosten', 'eingabe.erwerb.fertigJahr', 'eingabe.erwerb.baubeginn', 'eingabe.miete.kaltMonat', 'eingabe.miete.umlagenMonat', 'eingabe.finanzierung.darlehen.0.zinsenLautBescheinigung', 'eingabe.finanzierung.geldbeschaffungskosten', 'eingabe.hausgeld.monat', 'eingabe.hausgeld.umlagefaehigMonat', 'eingabe.hausgeld.ruecklageMonat', 'eingabe.erwerb.ruecklageImKaufpreis', 'eingabe.objekt.wohnflaeche', 'eingabe.erwerb.sonderAfA7b', 'eingabe.erwerb.bauantrag', 'eingabe.erwerb.eh40qng', 'eingabe.erwerb.rndGutachten', 'eingabe.erwerb.restnutzungsdauer', 'eingabe.erwerb.bodenrichtwert', 'eingabe.erwerb.grundstueckQm', 'eingabe.erwerb.meaZaehler'].map(function (p) { var f = Object.assign({}, feldDef(p)); delete f.h; return feldHtml(f, A.daten, null, 'k' + p.replace(/\W/g, '_')); }).join('') +
       '</div><p class="tiny" id="saved" aria-live="polite">Änderungen werden gespeichert und protokolliert.</p></form></details>' : '';
     var blockiert = res && res.freigabe && !res.freigabe.moeglich;
+    if (res) PDF_STAND = { r: res, frei: frei };
     mount('<div class="wrap stack"><a class="link small" href="#/kanzlei">← Alle Fälle</a>' +
       '<div class="row" style="align-items:flex-end"><div class="stack-s"><span class="eyebrow">' + esc(a.nummer) + ', Anlage V ' + a.vz + '</span><h1 class="title">' + esc(a.kaeufer_name) + '</h1><span class="muted">' + esc(a.objekt_bezeichnung) + '</span></div><span class="spacer"></span>' + statusChip(a.status) + (a.status === 'in_pruefung' ? '<span class="timer" id="timer">Prüfzeit ' + mmss((A.pruefung && A.pruefung.pruefzeit_sek) || 0) + '</span>' : '') + '</div>' +
       '<div class="split"><div class="stack">' +
@@ -1161,7 +1204,7 @@
       '<section class="card pad stack"><h2 class="h3">Nachrichten</h2>' + (nachrichtenHtml(A.msgs, 'kanzlei') || '<p class="small muted">Noch keine Nachrichten.</p>') +
       (editierbar || a.status === 'sonderfall' ? '<form class="stack" id="fFrage"><div class="field"><label for="frage">' + (a.status === 'sonderfall' ? 'Nachricht oder Angebot an den Käufer' : 'Rückfrage an den Käufer') + '</label><textarea class="ta" id="frage" rows="3" required></textarea></div><button class="btn sec" type="submit"' + (a.status === 'rueckfrage' ? ' disabled' : '') + '>Senden</button></form>' : '') + '</section>' +
       (a.status === 'in_pruefung' ? '<div class="card pad stack"><button class="btn gold block" type="button" data-act="freigeben"' + (blockiert ? ' disabled' : '') + '>Anlage V freigeben</button>' + (blockiert ? '<p class="tiny">Erst alle roten Hinweise prüfen und abhaken.</p>' : '<p class="tiny">Der Käufer bekommt die Anlage V und die Zahlen für den Freibetrag. Ihre Freigabe wird mit Datum und Rechenstand gespeichert.</p>') + '</div>' : '') +
-      (frei && A.pruefung ? '<div class="note ok"><span class="ic" aria-hidden="true">✓</span><span><b>Freigegeben am ' + dDE(A.pruefung.freigabe_am) + '</b>Prüfzeit ' + mmss(A.pruefung.pruefzeit_sek) + ' Minuten. Rechenkern ' + esc(A.pruefung.kern_version || '') + '.</span></div>' : '') +
+      (frei && A.pruefung ? '<div class="row"><button class="btn sec" type="button" data-act="pdf">PDF der Anlage V</button></div><div class="note ok"><span class="ic" aria-hidden="true">✓</span><span><b>Freigegeben am ' + dDE(A.pruefung.freigabe_am) + '</b>Prüfzeit ' + mmss(A.pruefung.pruefzeit_sek) + ' Minuten. Rechenkern ' + esc(A.pruefung.kern_version || '') + '.</span></div>' : '') +
       '</div></div></div>', a.kaeufer_name);
   }
   var RND_PUNKTE = [
@@ -1258,6 +1301,7 @@
     var act = b.dataset.act;
     try {
       if (act === 'fWeiter') { fokusWeiter(); return; }
+      if (act === 'fSprung') { if (FK) { FK.i = Math.max(0, Math.min(FK.steps.length - 1, +b.dataset.i)); fokusZeigen(true); } return; }
       if (act === 'fZurueck') {
         if (FK && FK.i > 0) { FK.i--; fokusZeigen(true); return; }
         var ai = ABS.findIndex(function (x) { return x.k === aktAbs; });
@@ -1344,6 +1388,8 @@
           $('#errbox').focus(); return;
         }
         A.daten.erledigt = A.daten.erledigt || {}; A.daten.erledigt[k] = true;
+        var adrNeu = String(get(A.daten, 'eingabe.objekt.adresse') || '').trim();
+        if (k === 'wohnung' && adrNeu && adrNeu !== A.akte.objekt_bezeichnung) { try { var ru = await sb.rpc('kaeufer_objekt_umbenennen', { p_akte: A.akte.id, p_objekt: adrNeu }); if (!ru.error) A.akte.objekt_bezeichnung = adrNeu; } catch (x) { } }
         q(await sb.from('akte_daten').update({ eingabe: A.daten.eingabe, stammdaten: A.daten.stammdaten, fallcheck: A.daten.fallcheck, erledigt: A.daten.erledigt }).eq('akte_id', A.akte.id));
         var i = ABS.findIndex(function (x) { return x.k === k; });
         toast(ABS[i].t + ' erledigt. Noch ' + Math.max(0, 7 - fortschritt()) + ' von 7.');
@@ -1366,6 +1412,7 @@
         if (b.dataset.sicher !== '1') { b.dataset.sicher = '1'; b.textContent = 'Wirklich löschen?'; return; }
         q(await sb.from('dokument').delete().eq('id', b.dataset.id)); await sb.storage.from('unterlagen').remove([b.dataset.pfad]); toast('Gelöscht'); viewAbschnitt(A.akte.id, 'unterlagen'); return;
       }
+      if (act === 'pdf') { pdfLaden(); return; }
       if (act === 'drucken') { window.print(); if (A.akte && A.akte.status === 'freigegeben') sb.rpc('kaeufer_abschliessen', { p_akte: A.akte.id }).then(function () { }); return; }
       if (act === 'ktab') { KTAB = b.dataset.v; viewKanzlei(); return; }
       if (act === 'fallOeffnen') { location.hash = '#/kanzlei/' + b.dataset.id; return; }
@@ -1413,7 +1460,14 @@
     try {
       if (t.matches('#fVR select[data-p]')) { set(VR, t.dataset.p, t.value || null); vrAktualisieren(); return; }
       if (t.matches('select[data-p]')) { var r = pruefeFeld(t, false); if (t.closest('#fUeb')) set(VNEU, t.dataset.p, r.v); else { set(A.daten, t.dataset.p, r.v); if (t.closest('#fKorr')) korrSpeichern(); else speichern(); } }
-      if (t.matches('[data-act="upload"]')) { var n = await hochladen(t.files, t.dataset.typ, 'kaeufer', A.akte.id); t.value = ''; if (n) { toast(n === 1 ? 'Datei hochgeladen' : n + ' Dateien hochgeladen'); viewAbschnitt(A.akte.id, 'unterlagen'); } }
+      if (t.matches('[data-act="upload"]')) {
+        var n = await hochladen(t.files, t.dataset.typ, 'kaeufer', A.akte.id); t.value = '';
+        if (n) {
+          toast(n === 1 ? 'Datei hochgeladen' : n + ' Dateien hochgeladen');
+          if (aktAbs === 'unterlagen') viewAbschnitt(A.akte.id, 'unterlagen');
+          else { var dd = await sb.from('dokument').select('*').eq('akte_id', A.akte.id).order('created_at'); A.docs = dd.data || []; var rd = $('#rndDok'); if (rd) rd.textContent = 'Hochgeladen: ' + A.docs.filter(function (d) { return d.typ === 'rnd_gutachten'; }).map(function (d) { return d.dateiname; }).join(', '); }
+        }
+      }
       if (t.id === 'u_files') { Array.prototype.forEach.call(t.files, function (f) { VNEU.files.push({ file: f, typ: rateTyp(f.name) }); }); t.value = ''; vListe(); }
       if (t.matches('[data-act="vTyp"]')) VNEU.files[+t.dataset.i].typ = t.value;
       if (t.matches('[data-act="rndPunkt"]')) { set(A.daten, 'eingabe.erwerb.rndPruefung.' + t.dataset.k, t.checked ? true : null); kontoKanzleiSpeichern(); }
