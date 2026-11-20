@@ -348,6 +348,12 @@
     throw new Error('Ihr Konto wird noch eingerichtet. Bitte laden Sie die Seite in ein paar Sekunden neu.');
   }
   async function boot() {
+    var th = new URLSearchParams(location.search).get('th');
+    if (th) {
+      history.replaceState(null, '', location.pathname + (location.hash || '#/'));
+      var vr = await sb.auth.verifyOtp({ token_hash: th, type: 'magiclink' });
+      if (vr.error) toast('Dieser Anmeldelink ist abgelaufen oder wurde schon benutzt. Bitte einen neuen anfordern.', true);
+    }
     var r = await sb.auth.getSession();
     S.session = r.data.session;
     if (!S.session) { S.profil = null; nav(); viewAnmelden(); return; }
@@ -1039,8 +1045,8 @@
         '<div class="kpis"><div class="card kpi"><strong>' + orgs.filter(function (o) { return o.typ === 'vertrieb'; }).length + '</strong><span>Vertriebe</span></div><div class="card kpi"><strong>' + orgs.filter(function (o) { return o.typ === 'kanzlei'; }).length + '</strong><span>Kanzleien</span></div><div class="card kpi"><strong>' + team.length + '</strong><span>Teammitglieder</span></div></div>' +
         '<div class="split"><section class="card pad stack"><h2 class="h3">Organisationen</h2><div class="tw"><table><thead><tr><th>Name</th><th>Typ</th><th>Ort</th></tr></thead><tbody>' + orgs.map(function (o) { return '<tr><td><b>' + esc(o.name) + '</b></td><td>' + esc(o.typ) + '</td><td class="small">' + esc(o.anschrift || '') + '</td></tr>'; }).join('') + '</tbody></table></div>' +
         '<form class="stack" id="fOrg"><h3 class="h3">Neue Organisation</h3><div class="grid2"><div class="field"><label for="o_name">Name</label><div class="inp"><input id="o_name" required></div></div><div class="field"><label for="o_typ">Typ</label><div class="inp"><select id="o_typ"><option value="vertrieb">Vertrieb</option><option value="kanzlei">Kanzlei</option><option value="hausverwaltung">Hausverwaltung</option></select></div></div></div><div class="field"><label for="o_ort">Anschrift oder Ort</label><div class="inp"><input id="o_ort"></div></div><button class="btn sec" type="submit">Anlegen</button></form></section>' +
-        '<section class="card pad stack"><h2 class="h3">Team</h2><ul class="docs">' + team.map(function (t) { return '<li><span style="flex:1"><b class="small">' + esc(t.name || t.email) + '</b><br><span class="tiny">' + esc(t.email) + ' · ' + esc(t.rolle) + ' · ' + esc(oname(t.organisation_id)) + '</span></span><span class="chip c-ok">aktiv</span></li>'; }).join('') +
-        einl.filter(function (e) { return !team.some(function (t) { return String(t.email).toLowerCase() === String(e.email).toLowerCase(); }); }).map(function (e) { return '<li><span style="flex:1"><b class="small">' + esc(e.name || e.email) + '</b><br><span class="tiny">' + esc(e.email) + ' · ' + esc(e.rolle) + ' · ' + esc(oname(e.organisation_id)) + '</span></span><span class="chip c-grey">eingeladen</span></li>'; }).join('') + '</ul>' +
+        '<section class="card pad stack"><h2 class="h3">Team</h2><ul class="docs">' + team.map(function (t) { return '<li><span style="flex:1"><b class="small">' + esc(t.name || t.email) + '</b><br><span class="tiny">' + esc(t.email) + ' · ' + esc(t.rolle) + ' · ' + esc(oname(t.organisation_id)) + '</span></span><span class="chip c-ok">aktiv</span>' + (t.rolle !== 'admin' ? '<button class="btn ghost sm" type="button" data-act="anmeldelink" data-mail="' + esc(t.email) + '">Anmeldelink</button>' : '') + '</li>'; }).join('') +
+        einl.filter(function (e) { return !team.some(function (t) { return String(t.email).toLowerCase() === String(e.email).toLowerCase(); }); }).map(function (e) { return '<li><span style="flex:1"><b class="small">' + esc(e.name || e.email) + '</b><br><span class="tiny">' + esc(e.email) + ' · ' + esc(e.rolle) + ' · ' + esc(oname(e.organisation_id)) + '</span></span><span class="chip c-grey">eingeladen</span><button class="btn ghost sm" type="button" data-act="anmeldelink" data-mail="' + esc(e.email) + '">Anmeldelink</button></li>'; }).join('') + '</ul>' +
         '<form class="stack" id="fTeam"><h3 class="h3">Mitarbeiter einladen</h3><p class="tiny">Die Person meldet sich danach einfach mit dieser E-Mail an und bekommt automatisch die Rolle.</p><div class="grid2"><div class="field"><label for="t_mail">E-Mail</label><div class="inp"><input id="t_mail" type="email" required></div></div><div class="field"><label for="t_name">Name</label><div class="inp"><input id="t_name"></div></div><div class="field"><label for="t_rolle">Rolle</label><div class="inp"><select id="t_rolle"><option value="vertrieb">Vertrieb</option><option value="kanzlei">Kanzlei</option><option value="hausverwaltung">Hausverwaltung</option><option value="admin">Verwaltung</option></select></div></div><div class="field"><label for="t_org">Organisation</label><div class="inp"><select id="t_org">' + orgs.map(function (o) { return '<option value="' + o.id + '">' + esc(o.name) + '</option>'; }).join('') + '</select></div></div></div><button class="btn sec" type="submit">Einladen</button></form></section></div></div>', 'Verwaltung');
     } catch (e) { fehler(e); }
   }
@@ -1110,6 +1116,22 @@
       if (act === 'mwPlus') { var vs = get(A.daten, 'eingabe.miete.vertraege') || [], nn = Math.max(2, vs.length); set(A.daten, 'eingabe.miete.vertraege.' + nn, {}); speichern(); mieteNeuZeichnen(nn + 1); return; }
       if (act === 'luftbild') { luftbildSetzen(true); var lf = $('#luftbild'); if (lf) lf.innerHTML = '<div class="lb-frage"><span>Luftbild wird geladen …</span></div>'; luftbildStarten(); return; }
       if (act === 'luftbildAus') { luftbildSetzen(false); toast('Das Luftbild wird nicht mehr geladen.'); viewKonto(); return; }
+      if (act === 'anmeldelink') {
+        b.disabled = true; var alt = b.textContent; b.textContent = 'Wird erzeugt …';
+        var fr = await sb.functions.invoke('anmeldelink', { body: { email: b.dataset.mail } });
+        b.disabled = false; b.textContent = alt;
+        if (fr.error) {
+          var fm = 'Der Link konnte nicht erzeugt werden.';
+          try { var fj = await fr.error.context.json(); if (fj && fj.error) fm = fj.error; } catch (x) { }
+          toast(fm, true); return;
+        }
+        var link = location.origin + location.pathname + '?th=' + encodeURIComponent(fr.data.token_hash);
+        var li = b.closest('li'), alt2 = li.nextElementSibling;
+        if (alt2 && alt2.classList.contains('linkbox')) alt2.parentNode.removeChild(alt2);
+        li.insertAdjacentHTML('afterend', '<li class="linkbox"><div class="note ok" style="width:100%"><span class="ic" aria-hidden="true">✓</span><span><b>Anmeldelink für ' + esc(fr.data.email) + '</b>Gilt eine Stunde und nur einmal. Schicken Sie ihn direkt an diese Person, zum Beispiel per WhatsApp. Es geht keine E-Mail raus.' +
+          '<span class="row" style="margin-top:8px"><span class="inp" style="flex:1;min-width:0"><input readonly value="' + esc(link) + '" aria-label="Anmeldelink" onclick="this.select()"></span><button class="btn sm" type="button" data-act="aliasKopieren" data-v="' + esc(link) + '">Kopieren</button></span></span></div></li>');
+        return;
+      }
       if (act === 'kfilter') { KFILTER = b.dataset.v; kontoAnzeigeNeu(); return; }
       if (act === 'kontoPrivat') {
         var kp = get(A.daten, 'eingabe.konto'), np = 0;
