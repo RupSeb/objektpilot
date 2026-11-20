@@ -218,7 +218,8 @@
     check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
     plus: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
     liste: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
-    stapel: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>'
+    stapel: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
+    gutachten: '<path d="M9 4h6v3H9z"/><path d="M15 5.5h2a2 2 0 0 1 2 2V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7.5a2 2 0 0 1 2-2h2"/><path d="M8.5 16l2.5-3 2 2 2.5-3.5"/>'
   };
   // Fotos je Schritt (Unsplash-Lizenz, liegen in assets/bilder)
   var BILD = { fallcheck: 'anmeldung', wohnung: 'kauf', miete: 'miete', finanzierung: 'finanzierung', hausgeld: 'hausgeld', unterlagen: 'unterlagen', person: 'willkommen', auftrag: 'anmeldung', konto: 'unterlagen', vertrieb: 'willkommen', uebergabe: 'kauf' };
@@ -405,7 +406,7 @@
     nav();
     if (h[0] === 'konto') return viewKonto();
     if (h[0] === 'admin' && S.verwaltung) return viewAdmin();
-    if (r === 'kaeufer') { if (h[0] === 'akte' && h[1]) return h[2] === 'konto' ? viewKontoauszug(h[1]) : h[2] ? viewAbschnitt(h[1], h[2]) : viewAkte(h[1]); return viewKaeuferStart(); }
+    if (r === 'kaeufer') { if (h[0] === 'akte' && h[1]) return h[2] === 'konto' ? viewKontoauszug(h[1]) : h[2] ? viewAbschnitt(h[1], h[2], h[3]) : viewAkte(h[1]); return viewKaeuferStart(); }
     if (r === 'vertrieb') { if (h[0] === 'vertrieb' && h[1] === 'neu') return viewVertriebNeu(); return viewVertrieb(); }
     if (r === 'kanzlei') { if (h[0] === 'kanzlei' && h[1]) return viewFall(h[1]); return viewKanzlei(); }
     if (r === 'admin') return viewAdmin();
@@ -503,7 +504,13 @@
             var offenK = nk ? ko.bewegungen.filter(function (b) { return !b.dup && b.kat === 'unklar'; }).length : 0;
             return '<ul class="tasks"><li class="rein-r" style="--d:.1s"><a href="#/akte/' + id + '/konto"><span class="n" aria-hidden="true">' + ico('liste') + '</span><span class="t"><b>Kontoauszug einlesen</b><span>' +
               (nk ? nk + ' Umsätze eingelesen' + (offenK ? ', ' + offenK + ' noch ungeklärt' : ', alle zugeordnet') : 'Freiwillig. Miete, Hausgeld und Zinsen direkt aus den Umsätzen, statt sie abzutippen.') + '</span></span>' +
-              '<span class="chip ' + (nk ? (offenK ? 'c-warn' : 'c-ok') : 'c-grey') + '">' + (nk ? (offenK ? 'Klären' : 'Eingelesen') : 'Freiwillig') + '</span></a></li></ul>';
+              '<span class="chip ' + (nk ? (offenK ? 'c-warn' : 'c-ok') : 'c-grey') + '">' + (nk ? (offenK ? 'Klären' : 'Eingelesen') : 'Freiwillig') + '</span></a></li>' +
+              (function () {
+                var rg = get(A.daten, 'eingabe.erwerb.rndGutachten'), rj = get(A.daten, 'eingabe.erwerb.restnutzungsdauer');
+                var txt = rg === 'ja' ? (rj ? 'Restnutzungsdauer ' + rj + ' Jahre. Bitte das Gutachten bei den Unterlagen hochladen.' : 'Bitte die Restnutzungsdauer aus dem Gutachten eintragen.') : rg === 'pruefen' ? 'Vor dem Beauftragen sehen Sie, wie viel ein Gutachten bringen könnte.' : 'Freiwillig. Eine kürzere Restnutzungsdauer kann die Abschreibung deutlich erhöhen, vor allem bei älteren Gebäuden.';
+                var chip = rg === 'ja' ? (rj ? '<span class="chip c-ok">Angegeben</span>' : '<span class="chip c-warn">Ergänzen</span>') : rg === 'pruefen' ? '<span class="chip c-info">Wird geprüft</span>' : '<span class="chip c-grey">Freiwillig</span>';
+                return '<li class="rein-r" style="--d:.16s"><a href="#/akte/' + id + '/wohnung/rnd"><span class="n" aria-hidden="true">' + ico('gutachten') + '</span><span class="t"><b>Gutachten zur Restnutzungsdauer</b><span>' + txt + '</span></span>' + chip + '</a></li>';
+              })() + '</ul>';
           })() +
           '<div class="note info"><span class="ic" aria-hidden="true">i</span><span><b>Wer sieht was?</b>Ihre Angaben sehen nur Sie und die Kanzlei, die Sie wählen.' + (a.vertrieb_id ? ' Ihr Vertrieb sieht keine Steuerdaten.' : '') + '</span></div></div>', a.objekt_bezeichnung);
         if (luftbildErlaubt()) luftbildStarten();
@@ -597,6 +604,7 @@
     var steps = Array.prototype.filter.call(box.children, function (el) { return el.matches('.field, .grid2, fieldset, .note'); });
     if (steps.length < 2) return;
     var start = steps.findIndex(fokusLeer); if (start < 0) start = nachAuswahl ? steps.length - 1 : 0;
+    if (fokusInit._ziel) { var zi = steps.findIndex(function (el) { return el.querySelector('[data-p="' + fokusInit._ziel + '"]'); }); if (zi >= 0) start = zi; fokusInit._ziel = null; }
     FK = { k: k, steps: steps, i: start };
     box.classList.add('fokus');
     var segs = document.createElement('div'); segs.className = 'fsegs'; segs.setAttribute('aria-hidden', 'true');
@@ -629,7 +637,8 @@
     FK.i++; fokusZeigen(true); window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   var aktAbs = null;
-  async function viewAbschnitt(id, k) {
+  async function viewAbschnitt(id, k, ziel) {
+    fokusInit._ziel = ziel === 'rnd' ? 'eingabe.erwerb.rndGutachten' : null;
     laden();
     try {
       if (!A.akte || A.akte.id !== id) await akteLaden(id);
