@@ -152,6 +152,7 @@
     { k: 'notar_grundschuld', t: 'Notarrechnung zur Grundschuld', req: 0 },
     { k: 'wirtschaftsplan', t: 'Wirtschaftsplan oder Hausgeldabrechnung', req: 1 },
     { k: 'zinsbescheinigung', t: 'Jahreszinsbescheinigung der Bank', req: 0 },
+    { k: 'rnd_gutachten', t: 'Gutachten zur Restnutzungsdauer', req: 0, nurWenn: function () { return get(A.daten, 'eingabe.erwerb.rndGutachten') === 'ja'; } },
     { k: 'sonstiges', t: 'Weitere Unterlage', req: 0 }
   ];
   var F = {
@@ -170,7 +171,9 @@
       { p: 'eingabe.erwerb.afaMethode', l: 'Abschreibung', t: 'select', req: 1, opts: [['linear', 'Linear'], ['degressiv', 'Degressiv 5% (Neubau)']], h: 'Bei Neubauten mit Baubeginn ab Oktober 2023 ist oft die degressive Abschreibung möglich. Die Kanzlei prüft das.' },
       { p: 'eingabe.erwerb.sonderAfA7b', l: 'Sonderabschreibung nach § 7b nutzen', t: 'select', neubau: 1, opts: [['nein', 'Nein'], ['ja', 'Ja, bitte prüfen']], h: 'Für neue Mietwohnungen mit Bauantrag ab 2023, Effizienzhaus 40 mit QNG-Siegel und Kosten des Gebäudes bis 5.200 € je m². Dann zusätzlich 5% im Jahr, vier Jahre lang. Steht oft im Exposé oder im Bauträgervertrag.' },
       { p: 'eingabe.erwerb.bauantrag', l: 'Datum des Bauantrags', t: 'date', neubau: 1, h: 'Nur für die Sonderabschreibung nötig. Fragen Sie den Bauträger, wenn es nicht im Vertrag steht.' },
-      { p: 'eingabe.erwerb.eh40qng', l: 'Effizienzhaus 40 mit QNG-Siegel', t: 'select', neubau: 1, opts: [['ja', 'Ja'], ['nein', 'Nein'], ['unklar', 'Weiß ich nicht']], h: 'Steht im Energieausweis oder im Zertifikat zum Qualitätssiegel Nachhaltiges Gebäude.' }
+      { p: 'eingabe.erwerb.eh40qng', l: 'Effizienzhaus 40 mit QNG-Siegel', t: 'select', neubau: 1, opts: [['ja', 'Ja'], ['nein', 'Nein'], ['unklar', 'Weiß ich nicht']], h: 'Steht im Energieausweis oder im Zertifikat zum Qualitätssiegel Nachhaltiges Gebäude.' },
+      { p: 'eingabe.erwerb.rndGutachten', l: 'Gutachten zur Restnutzungsdauer', t: 'select', bestand: 1, opts: [['nein', 'Nein'], ['ja', 'Ja, liegt vor'], ['pruefen', 'Nein, aber ich möchte wissen, ob es sich lohnt']], h: 'Bei älteren Gebäuden ist die tatsächliche Restnutzungsdauer oft kürzer als die 50 Jahre, mit denen das Gesetz rechnet. Ein Gutachten kann die Abschreibung dann deutlich erhöhen.' },
+      { p: 'eingabe.erwerb.restnutzungsdauer', l: 'Restnutzungsdauer laut Gutachten', t: 'num', suf: 'Jahre', bestand: 1, h: 'Steht im Ergebnis des Gutachtens. Nur ausfüllen, wenn ein Gutachten vorliegt.' }
     ],
     miete: [
       { p: 'eingabe.miete.kaltMonat', l: 'Kaltmiete pro Monat', t: 'eur', req: 1, h: 'Laut Mietvertrag, ohne Nebenkosten.' },
@@ -625,7 +628,7 @@
       else if (k === 'unterlagen') body = unterlagenHtml();
       else if (k === 'auftrag') body = auftragHtml();
       else if (k === 'miete') body = mieteHtml();
-      else body = '<div class="stack">' + (k === 'wohnung' ? '<div class="grid2">' + F.wohnung.slice(0, 2).map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('') + '</div>' + F.wohnung.slice(2).filter(function (f) { return !f.neubau || (A.daten.fallcheck || {}).art === 'neubau' || get(A.daten, 'eingabe.erwerb.sonderAfA7b') === 'ja'; }).map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('') :
+      else body = '<div class="stack">' + (k === 'wohnung' ? '<div class="grid2">' + F.wohnung.slice(0, 2).map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('') + '</div>' + F.wohnung.slice(2).filter(function (f) { var art = (A.daten.fallcheck || {}).art; return (!f.neubau || art === 'neubau' || get(A.daten, 'eingabe.erwerb.sonderAfA7b') === 'ja') && (!f.bestand || art === 'bestand' || get(A.daten, 'eingabe.erwerb.rndGutachten')); }).map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('') :
         k === 'person' ? '<div class="grid2">' + F.person.slice(0, 2).map(function (f) { return feldHtml(f, A.daten); }).join('') + '</div>' + feldHtml(F.person[2], A.daten) + feldHtml(F.person[3], A.daten) + '<div class="grid2">' + F.person.slice(4, 6).map(function (f) { return feldHtml(f, A.daten); }).join('') + '</div>' + F.person.slice(6).map(function (f) { return feldHtml(f, A.daten); }).join('') :
           F[k].map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('')) + '</div>';
       var intro = {
@@ -855,7 +858,7 @@
     return '<section class="card pad stack noprint"><h2 class="h3">Steuerjahr ' + n + '</h2><p class="small">Wohnung, Kauf und Ihre Angaben übernehmen wir. Sie ergänzen nur Miete, Zinsen und Hausgeld des neuen Jahres. Die Abschreibung läuft automatisch weiter.</p><div class="row"><button class="btn sec" type="button" data-act="folgejahr">Steuerjahr ' + n + ' anlegen</button></div></section>';
   }
   function unterlagenHtml() {
-    return '<div class="stack"><p class="small muted">PDF oder Foto, bis 20 MB je Datei. Am Handy können Sie direkt die Kamera nutzen.</p><ul class="tasks">' + DOKTYPEN.filter(function (t) { return t.k !== 'sonstiges'; }).map(function (t) {
+    return '<div class="stack"><p class="small muted">PDF oder Foto, bis 20 MB je Datei. Am Handy können Sie direkt die Kamera nutzen.</p><ul class="tasks">' + DOKTYPEN.filter(function (t) { return t.k !== 'sonstiges' && (!t.nurWenn || t.nurWenn() || A.docs.some(function (d) { return d.typ === t.k; })); }).map(function (t) {
       var da = A.docs.filter(function (d) { return d.typ === t.k; });
       return '<li><div class="dis" style="opacity:1"><span class="n" aria-hidden="true" style="' + (da.length ? 'background:var(--ok);border-color:var(--ok);color:#fff' : '') + '">' + (da.length ? '✓' : '') + '</span><span class="t"><b>' + t.t + (t.req ? '' : ' <span class="muted" style="font-weight:400">(falls vorhanden)</span>') + '</b><span>' + (da.length ? da.map(function (d) { return esc(d.dateiname) + (d.quelle === 'vertrieb' ? ', vom Vertrieb' : ''); }).join(', ') : 'Noch nicht vorhanden') + '</span></span>' +
         '<label class="btn sec sm">' + (da.length ? 'Weitere' : 'Hochladen') + '<input type="file" class="sr" data-act="upload" data-typ="' + t.k + '" accept="application/pdf,image/*" multiple></label></div></li>';
@@ -873,7 +876,8 @@
     var w = A.daten._wahl || '';
     var vorschau = r ? '<section class="card pad stack" aria-labelledby="vs"><div class="row"><h2 class="h3" id="vs">Vorschau Ihrer Anlage V</h2><span class="chip c-gold">Wird von der Kanzlei geprüft</span></div>' +
       '<div class="kpis"><div class="kpi card"><strong class="num">' + eur(r.summen.einnahmen) + '</strong><span>Einnahmen ' + A.akte.vz + '</span></div><div class="kpi card"><strong class="num">' + eur(r.summen.werbungskosten) + '</strong><span>Werbungskosten</span></div><div class="kpi card"><strong class="num">' + eur(r.summen.ueberschuss) + '</strong><span>Ergebnis</span></div></div>' +
-      (r.freibetrag && r.freibetrag.steuerwirkungMonat ? '<p class="small">Mit Freibetrag ab ' + r.freibetrag.jahr + ' voraussichtlich rund <b>' + eur(r.freibetrag.steuerwirkungMonat) + ' mehr netto im Monat</b>.</p>' : '') + '</section>' : '';
+      (r.freibetrag && r.freibetrag.steuerwirkungMonat ? '<p class="small">Mit Freibetrag ab ' + r.freibetrag.jahr + ' voraussichtlich rund <b>' + eur(r.freibetrag.steuerwirkungMonat) + ' mehr netto im Monat</b>.</p>' : '') +
+      r.hinweise.filter(function (h) { return h.id === 'P10c'; }).map(function (h) { return '<div class="note info"><span><b>' + esc(h.titel) + '</b>' + esc(h.text) + ' Die Kanzlei kann Ihnen dazu ein Angebot machen.</span></div>'; }).join('') + '</section>' : '';
     var opts = kanzleien.map(function (o) { return '<button type="button" class="opt" data-act="wahl" data-v="' + o.id + '" aria-pressed="' + (w === o.id) + '"><i class="dot" aria-hidden="true"></i><span><b>' + esc(o.name) + '</b><span>' + (sf ? 'Prüft Ihren Fall und macht Ihnen ein Angebot' : 'Prüft und gibt frei. Festpreis ' + eur2(preis(o)) + ' inkl. 19% USt, Rückfragen inklusive') + '</span></span></button>'; }).join('') +
       '<button type="button" class="opt" data-act="wahl" data-v="eigen" aria-pressed="' + (w === 'eigen') + '"><i class="dot" aria-hidden="true"></i><span><b>Mein eigener Steuerberater</b><span>Sie bekommen die vorbereitete Anlage V und alle Unterlagen als Datenpaket</span></span></button>';
     var gew = kanzleien.filter(function (o) { return o.id === w; })[0];
@@ -931,7 +935,7 @@
   function viewVertriebNeu() {
     VNEU = { eingabe: { erwerb: { afaMethode: 'linear' } }, files: [] };
     var jahr = new Date().getFullYear();
-    var kauf = F.wohnung.filter(function (f) { return !f.neubau && ['eingabe.objekt.adresse', 'eingabe.erwerb.afaMethode'].indexOf(f.p) < 0; });
+    var kauf = F.wohnung.filter(function (f) { return !f.neubau && !f.bestand && ['eingabe.objekt.adresse', 'eingabe.erwerb.afaMethode'].indexOf(f.p) < 0; });
     var mk = function (f) { var g = Object.assign({}, f, { req: f.req && /kaufpreis|uebergang|kaufvertrag/.test(f.p) ? 1 : 0, p: f.p }); return feldHtml(g, { eingabe: VNEU.eingabe }, null, 'v' + f.p.replace(/\W/g, '_')); };
     mount('<div class="wrap narrow stack"><a class="link small" href="#/vertrieb">← Ihre Käufer</a><div class="stack-s"><span class="eyebrow">Übergabe</span><h1 class="title">Käufer übergeben</h1><p class="lead">Was Sie hier eintragen, muss Ihr Käufer nicht mehr suchen. Alles außer Name, E-Mail und Wohnung ist freiwillig.</p></div>' +
       '<form class="stack" id="fUeb" novalidate>' +
@@ -1003,7 +1007,7 @@
         (h.ampel === 'rot' && editierbar ? '<label class="check" style="padding:4px 0 0"><input type="checkbox" data-act="quitt" data-id="' + h.id + '"' + (q_ ? ' checked' : '') + '> <span class="small">Geprüft, Freigabe trotzdem möglich</span></label>' : '') + '</div>';
     }).join('') : '<p class="small">Die Berechnung braucht noch Angaben.</p>';
     var korr = editierbar ? '<details class="card pad"><summary class="h3" style="cursor:pointer">Werte korrigieren</summary><form class="stack" id="fKorr" novalidate onsubmit="return false" style="margin-top:14px"><div class="grid2">' +
-      ['eingabe.erwerb.gebaeudeanteil', 'eingabe.erwerb.afaMethode', 'eingabe.erwerb.kaufpreis', 'eingabe.erwerb.nebenkosten', 'eingabe.erwerb.fertigJahr', 'eingabe.erwerb.baubeginn', 'eingabe.miete.kaltMonat', 'eingabe.miete.umlagenMonat', 'eingabe.finanzierung.darlehen.0.zinsenLautBescheinigung', 'eingabe.finanzierung.geldbeschaffungskosten', 'eingabe.hausgeld.monat', 'eingabe.hausgeld.umlagefaehigMonat', 'eingabe.hausgeld.ruecklageMonat', 'eingabe.erwerb.ruecklageImKaufpreis', 'eingabe.objekt.wohnflaeche', 'eingabe.erwerb.sonderAfA7b', 'eingabe.erwerb.bauantrag', 'eingabe.erwerb.eh40qng'].map(function (p) { var f = Object.assign({}, feldDef(p)); delete f.h; return feldHtml(f, A.daten, null, 'k' + p.replace(/\W/g, '_')); }).join('') +
+      ['eingabe.erwerb.gebaeudeanteil', 'eingabe.erwerb.afaMethode', 'eingabe.erwerb.kaufpreis', 'eingabe.erwerb.nebenkosten', 'eingabe.erwerb.fertigJahr', 'eingabe.erwerb.baubeginn', 'eingabe.miete.kaltMonat', 'eingabe.miete.umlagenMonat', 'eingabe.finanzierung.darlehen.0.zinsenLautBescheinigung', 'eingabe.finanzierung.geldbeschaffungskosten', 'eingabe.hausgeld.monat', 'eingabe.hausgeld.umlagefaehigMonat', 'eingabe.hausgeld.ruecklageMonat', 'eingabe.erwerb.ruecklageImKaufpreis', 'eingabe.objekt.wohnflaeche', 'eingabe.erwerb.sonderAfA7b', 'eingabe.erwerb.bauantrag', 'eingabe.erwerb.eh40qng', 'eingabe.erwerb.rndGutachten', 'eingabe.erwerb.restnutzungsdauer'].map(function (p) { var f = Object.assign({}, feldDef(p)); delete f.h; return feldHtml(f, A.daten, null, 'k' + p.replace(/\W/g, '_')); }).join('') +
       '</div><p class="tiny" id="saved" aria-live="polite">Änderungen werden gespeichert und protokolliert.</p></form></details>' : '';
     var blockiert = res && res.freigabe && !res.freigabe.moeglich;
     mount('<div class="wrap stack"><a class="link small" href="#/kanzlei">← Alle Fälle</a>' +

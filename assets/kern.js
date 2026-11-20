@@ -552,9 +552,16 @@
           hinweis('P11', 'ok', 'Degressive AfA plausibel', 'Kaufvertrag und Baubeginn im Zeitfenster, Anschaffung im Jahr der Fertigstellung.', '§ 7 Abs. 5a EStG');
         }
       }
-      var satz = methode === 'degressiv' ? 0.05 : (e.afaSatzAbweichend ? num(e.afaSatzAbweichend) : typSatz(fertigJahr));
+      // Restnutzungsdauer laut Gutachten (§ 7 Abs. 4 Satz 2 EStG): Satz = 1 / Restnutzungsdauer, nur wenn höher als der gesetzliche Satz
+      var rnd = e.rndGutachten === 'nein' ? 0 : num(e.restnutzungsdauer), satzGesetz = typSatz(fertigJahr), rndGenutzt = false;
+      var satz = methode === 'degressiv' ? 0.05 : (e.afaSatzAbweichend ? num(e.afaSatzAbweichend) : satzGesetz);
+      if (methode === 'linear' && rnd > 0) {
+        if (!satzGesetz || 1 / rnd > satzGesetz) { satz = 1 / rnd; rndGenutzt = true; }
+        else hinweis('P10b', 'info', 'Gutachten ohne Vorteil', 'Die Restnutzungsdauer von ' + rnd + ' Jahren ergibt ' + pct(1 / rnd) + ' und damit nicht mehr als der gesetzliche Satz von ' + pct(satzGesetz) + '. Gerechnet wird mit dem gesetzlichen Satz.', '§ 7 Abs. 4 Satz 2 EStG');
+      }
       if (!satz) { satz = 0.02; hinweis('P10', 'rot', 'AfA-Satz nicht ermittelbar', 'Jahr der Fertigstellung fehlt. Vorläufig 2% gerechnet.', '§ 7 Abs. 4 EStG'); }
-      if (e.afaSatzAbweichend && methode === 'linear') hinweis('P10b', 'gelb', 'Abweichender AfA-Satz', 'Satz ' + pct(satz) + ' wegen kürzerer Nutzungsdauer. Gutachten zur Restnutzungsdauer prüfen.', '§ 7 Abs. 4 Satz 2 EStG');
+      if (rndGenutzt) hinweis('P10b', 'gelb', 'Kürzere Nutzungsdauer laut Gutachten', 'Satz ' + pct(satz) + ' aus einer Restnutzungsdauer von ' + rnd + ' Jahren statt ' + pct(satzGesetz || 0.02) + '. Die Kanzlei prüft, ob das Gutachten die kürzere Nutzungsdauer nachvollziehbar belegt. Gutachten bitte hochladen.', '§ 7 Abs. 4 Satz 2 EStG');
+      else if (e.afaSatzAbweichend && methode === 'linear') hinweis('P10b', 'gelb', 'Abweichender AfA-Satz', 'Satz ' + pct(satz) + ' wegen kürzerer Nutzungsdauer. Gutachten zur Restnutzungsdauer prüfen.', '§ 7 Abs. 4 Satz 2 EStG');
       if (hat7b(e)) {
         var p7b = pruefe7b(e, i.objekt || {}, akGeb);
         if (!p7b.zulaessig) hinweis('P14', 'rot', 'Sonderabschreibung § 7b nicht zulässig', p7b.gruende.join('. ') + '. Ohne Sonderabschreibung gerechnet.', '§ 7b EStG');
@@ -572,7 +579,12 @@
       var vj = verlauf.filter(function (r) { return r.jahr === vz - 1; })[0];
       // Schlüssel nach Marvins Review-Liste R07: 2 bei erstmaliger AfA, Satzänderung, nachträglichen HK
       // oder Abweichung vom Vorjahresbetrag, sonst 1
-      var schl = (erstjahr || zugaenge[vz] || e.afaSatzAbweichend || (vj && werbung(vj.afa) !== werbung(jr.afa))) ? 2 : 1;
+      var schl = (erstjahr || zugaenge[vz] || e.afaSatzAbweichend || rndGenutzt || (vj && werbung(vj.afa) !== werbung(jr.afa))) ? 2 : 1;
+      // Potenzial eines Gutachtens zeigen, wenn der Käufer das prüfen lassen möchte
+      if (e.rndGutachten === 'pruefen' && methode === 'linear' && !rndGenutzt) {
+        var bspRnd = 30, mehrJahr = akGeb * Math.max(0, 1 / bspRnd - satz);
+        if (mehrJahr > 0) hinweis('P10c', 'info', 'Gutachten zur Restnutzungsdauer kann sich lohnen', 'Beispiel: Bei einer Restnutzungsdauer von ' + bspRnd + ' Jahren stiege die AfA von ' + pct(satz) + ' auf ' + pct(1 / bspRnd) + '. Das wären rund ' + eur(Math.round(mehrJahr)) + ' mehr Werbungskosten im Jahr. Ob die Restnutzungsdauer wirklich so kurz ist, klärt erst ein Gutachten.', '§ 7 Abs. 4 Satz 2 EStG');
+      }
       afaZeile = zeile('33', 'AfA Gebäude', werbung(jr.afa), 'W',
         (methode === 'degressiv' ? 'degressiv 5% vom Restwert' : 'linear ' + pct(satz) + ' von ' + eur(jr.bmg || akGeb)) + ', ' + jr.monate + ' Monate',
         'Kaufvertrag: (Kaufpreis ' + eur(num(e.kaufpreis)) + (num(e.ruecklageImKaufpreis) ? ' − Rücklage ' + eur(num(e.ruecklageImKaufpreis)) : '') + (inventarImKP ? ' − Inventar ' + eur(inventarImKP) : '') + ' + Nebenkosten ' + eur(nk) + ') × Gebäudeanteil ' + pct(anteil),
