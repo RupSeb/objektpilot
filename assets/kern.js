@@ -480,7 +480,7 @@
       var mv = mieteAusVertraegen(vtr, vz, ueb, ende);
       if (miete.kaltJahr == null) {
         miete.kaltJahr = mv.kalt; miete.umlagenJahr = mv.uml;
-        miete._herkunft = vtr.map(function (v) { return fmtDatum(parseDatum(v.von)) + ' bis ' + (v.bis ? fmtDatum(parseDatum(v.bis)) : 'laufend') + ' ' + eur(num(v.kaltMonat)); }).join(' · ') + ', taggenau';
+        miete._herkunft = vtr.map(function (v) { return fmtDatum(parseDatum(v.von)) + ' bis ' + (v.bis ? fmtDatum(parseDatum(v.bis)) : 'laufend') + ' ' + eur(num(v.kaltMonat)); }).join(', ') + ', taggenau';
         miete._herkunftUml = 'Mietverhältnisse taggenau';
         miete.quelle = 'Mietverträge';
       }
@@ -608,7 +608,7 @@
       if (jr) { wgSumme += jr.afa; wgText.push((w.bezeichnung || 'Inventar') + ' ' + eur(ak) + ', ' + (num(w.nutzungsdauer) || 10) + ' Jahre, Restwert ' + eur(jr.restwert)); }
     });
     var wgNeu = (i.inventar || []).some(function (w) { var d = parseDatum(w.anschaffung) || ueb; return d && d.j === vz; });
-    var z42 = zeile('42', 'AfA bewegliche Wirtschaftsgüter', werbung(wgSumme), 'W', wgText.join(' · '), 'Kaufvertrag, Kaufbelege', { schluessel: (wgNeu || werbung(wgVJ) !== werbung(wgSumme)) ? 2 : 1 });
+    var z42 = zeile('42', 'AfA bewegliche Wirtschaftsgüter', werbung(wgSumme), 'W', wgText.join(', '), 'Kaufvertrag, Kaufbelege', { schluessel: (wgNeu || werbung(wgVJ) !== werbung(wgSumme)) ? 2 : 1 });
     zeile('45', 'AfA bewegliche Wirtschaftsgüter, abzugsfähig', z42.betrag, 'S', 'Zeile 42');
 
     /* ---------- Finanzierung ---------- */
@@ -631,7 +631,7 @@
       }
     });
     if (zinsGeschaetzt) hinweis('P03', 'gelb', 'Zinsbescheinigung fehlt', 'Schuldzinsen aus dem Darlehensvertrag geschätzt. Bescheinigung anfordern oder Schätzung bewusst übernehmen.', '§ 9 Abs. 1 Nr. 1 EStG');
-    var z46 = zeile('46', 'Schuldzinsen (ohne Tilgung)', werbung(zinsen + disagio), 'W', zinsText.join(' · ') + (disagio ? ' · Disagio ' + eur(disagio) : ''), 'Zinsbescheinigung, Darlehensvertrag', { geschaetzt: zinsGeschaetzt });
+    var z46 = zeile('46', 'Schuldzinsen (ohne Tilgung)', werbung(zinsen + disagio), 'W', zinsText.join(', ') + (disagio ? ', Disagio ' + eur(disagio) : ''), 'Zinsbescheinigung, Darlehensvertrag', { geschaetzt: zinsGeschaetzt });
     zeile('48', 'Schuldzinsen, abzugsfähig', z46.betrag, 'S', 'Zeile 46');
     var gb = num(fin.geldbeschaffungskosten);
     var z49 = zeile('49', 'Geldbeschaffungskosten', werbung(gb), 'W', gb ? 'im Jahr gezahlt' : '', 'Notar- und Grundbuchrechnung Grundschuld, Schätzkosten');
@@ -690,7 +690,7 @@
     if (uml > 0 && umlagef === 0) hinweis('P21', 'gelb', 'Umlagen ohne umgelegte Kosten', 'Der Mieter zahlt Nebenkosten, es sind aber keine umlagefähigen Kosten erfasst. Hausgeldaufteilung prüfen.', '');
 
     var sonstSumme = gwgSofort + ['steuerberatung', 'fahrtkosten', 'kontofuehrung', 'rechtskosten', 'sonstiges'].reduce(function (s, k) { return s + num(sonst[k]); }, 0);
-    var z80 = zeile('80', 'Sonstige Kosten', werbung(sonstSumme), 'W', [gwgSofort ? 'GWG ' + eur(gwgSofort) : '', num(sonst.steuerberatung) ? 'Steuerberatung ' + eur(num(sonst.steuerberatung)) : ''].filter(Boolean).join(' · '), 'Belege');
+    var z80 = zeile('80', 'Sonstige Kosten', werbung(sonstSumme), 'W', [gwgSofort ? 'GWG ' + eur(gwgSofort) : '', num(sonst.steuerberatung) ? 'Steuerberatung ' + eur(num(sonst.steuerberatung)) : ''].filter(Boolean).join(', '), 'Belege');
     zeile('82', 'Sonstige Kosten, abzugsfähig', z80.betrag, 'S', 'Zeile 80');
 
     var wk = afaGeb + z42.betrag + z46.betrag + z49.betrag + z55.betrag + z58.betrag + vjSum + z73.betrag + z76.betrag + z80.betrag;

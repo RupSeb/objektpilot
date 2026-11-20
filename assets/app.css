@@ -466,3 +466,17 @@ tr.kx-anders td{opacity:.6}
   .objektkopf{min-height:240px;padding:20px 20px 76px;border-radius:22px}
   .ueber{margin-left:8px;margin-right:8px;margin-top:-64px}
 }
+
+/* Eigenständiger statt Vorlagen-Optik: keine Punkte, keine Kreissymbole */
+.chip{border-radius:7px;padding:3px 9px;gap:0;font-size:12px;font-weight:700;letter-spacing:.01em}
+.chip::before,.c-gold::before,.src::before{content:none}
+.src{border-radius:6px;padding:3px 8px}
+.note .ic{display:none}
+.note{border-radius:6px 14px 14px 6px;border-left:3px solid var(--line-2);padding:14px 16px 14px 15px}
+.note.ok{border-left-color:var(--ok)}
+.note.warn{border-left-color:var(--y-2)}
+.note.bad{border-left-color:var(--bad)}
+.note.info{border-left-color:var(--ink)}
+details.help summary::before{content:"";width:7px;height:7px;border:solid currentColor;border-width:0 2px 2px 0;border-radius:1px;background:none;transform:rotate(-45deg);transition:transform .2s;margin:0 3px 0 1px}
+details.help[open] summary::before{transform:rotate(45deg)}
+.saved.ok::before{content:none}

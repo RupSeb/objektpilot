@@ -52,7 +52,7 @@
   function debounce(fn, ms) { var t; return function () { var a = arguments, s = this; clearTimeout(t); t = setTimeout(function () { fn.apply(s, a); }, ms); }; }
   function mount(html, titel) {
     main.innerHTML = html;
-    if (titel) document.title = titel + ' · Objektpilot';
+    if (titel) document.title = titel + ' | Objektpilot';
     var h = main.querySelector('h1'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
     hochzaehlen();
     einblenden();
@@ -409,12 +409,12 @@
       if (!akten.length) {
         mount('<div class="wrap narrow stack"><section class="hero rein mit-logo">' + logo3d('im-hero') + '<span class="eyebrow">Willkommen</span><h1 class="title" style="color:#fff">Ihre Anlage V,<br><span style="color:var(--y)">von der Kanzlei geprüft.</span></h1>' +
           '<p>Legen Sie Ihre Wohnung an und tragen Sie die Zahlen aus Kaufvertrag, Mietvertrag und Darlehensvertrag ein. Das dauert etwa 15 Minuten. Danach prüft eine Steuerkanzlei alles zum Festpreis und gibt die Anlage V frei.</p>' +
-          '<div class="row small"><span>✓ Netto-Plus sofort sichtbar</span><span>✓ Festpreis ab 249 €</span><span>✓ Server in Frankfurt</span></div></section>' + neuForm +
+          '<p class="small">Ihr Netto-Plus sehen Sie sofort. Die Prüfung kostet einen Festpreis ab 249 €, und Ihre Daten bleiben auf Servern in Frankfurt.</p></section>' + neuForm +
           '<div class="note info"><span class="ic" aria-hidden="true">i</span><span><b>Kommt Ihre Wohnung über einen Vertrieb?</b>Dann müssen Sie nichts anlegen. Sie erscheint hier automatisch, sobald der Vertrieb sie mit <b>' + esc(S.profil.email) + '</b> übergeben hat.</span></div></div>', 'Meine Wohnungen');
         return;
       }
       mount('<div class="wrap narrow stack"><header class="objektkopf klein"><div class="ok-bild bild-2" aria-hidden="true"></div><div class="ok-text stack-s"><span class="eyebrow">Meine Wohnungen</span><h1 class="title">Ihre Anlagen V</h1></div></header><ul class="tasks">' +
-        akten.map(function (a, i) { return '<li class="rein-r" style="--d:' + (0.08 + i * 0.07).toFixed(2) + 's"><a href="#/akte/' + a.id + '"><span class="n" aria-hidden="true">' + String(a.vz).slice(2) + '</span><span class="t"><b>' + esc(a.objekt_bezeichnung) + '</b><span>Steuerjahr ' + a.vz + ' · ' + a.nummer + '</span></span>' + statusChip(a.status) + '</a></li>'; }).join('') + '</ul>' +
+        akten.map(function (a, i) { return '<li class="rein-r" style="--d:' + (0.08 + i * 0.07).toFixed(2) + 's"><a href="#/akte/' + a.id + '"><span class="n" aria-hidden="true">' + String(a.vz).slice(2) + '</span><span class="t"><b>' + esc(a.objekt_bezeichnung) + '</b><span>Steuerjahr ' + a.vz + ', ' + a.nummer + '</span></span>' + statusChip(a.status) + '</a></li>'; }).join('') + '</ul>' +
         '<details class="help"><summary>Weitere Wohnung oder weiteres Steuerjahr anlegen</summary><div style="margin-top:10px">' + neuForm + '</div></details></div>', 'Meine Wohnungen');
     } catch (e) { fehler(e); }
   }
@@ -464,7 +464,7 @@
       await akteLaden(id); S.letzteAkte = id; nav();
       if (A.akte.status === 'eingeladen') { await sb.rpc('kaeufer_oeffnen', { p_akte: id }); A.akte.status = 'in_erfassung'; }
       var a = A.akte, offen = a.status === 'in_erfassung';
-      var kopf = '<header class="objektkopf"><div class="ok-bild" aria-hidden="true"></div><div class="ok-text stack-s"><span class="eyebrow">' + esc(a.nummer) + ' · Steuerjahr ' + a.vz + '</span><h1 class="title">' + esc(a.objekt_bezeichnung) + '</h1><div class="row">' + statusChip(a.status) + '</div></div></header>';
+      var kopf = '<header class="objektkopf"><div class="ok-bild" aria-hidden="true"></div><div class="ok-text stack-s"><span class="eyebrow">' + esc(a.nummer) + ', Steuerjahr ' + a.vz + '</span><h1 class="title">' + esc(a.objekt_bezeichnung) + '</h1><div class="row">' + statusChip(a.status) + '</div></div></header>';
       if (offen) {
         var n = fortschritt(), naechste = ABS.filter(function (x) { return !absFertig(x.k); })[0] || ABS[7];
         var alleFertig = n >= 7;
@@ -503,7 +503,7 @@
   function kanzleiName(id) { var o = S.orgs.filter(function (x) { return x.id === id; })[0]; return o ? o.name : 'Ihre Kanzlei'; }
   function nachrichtenHtml(msgs, ich) {
     if (!msgs.length) return '';
-    return '<div class="stack-s" role="log" aria-label="Nachrichten">' + msgs.map(function (m) { return '<div class="msg ' + m.von_rolle + '">' + esc(m.text) + '<small>' + (m.von_rolle === ich ? 'Sie' : m.von_rolle === 'kanzlei' ? 'Kanzlei' : 'Käufer') + ' · ' + zeit(m.created_at) + '</small></div>'; }).join('') + '</div>';
+    return '<div class="stack-s" role="log" aria-label="Nachrichten">' + msgs.map(function (m) { return '<div class="msg ' + m.von_rolle + '">' + esc(m.text) + '<small>' + (m.von_rolle === ich ? 'Sie' : m.von_rolle === 'kanzlei' ? 'Kanzlei' : 'Käufer') + ', ' + zeit(m.created_at) + '</small></div>'; }).join('') + '</div>';
   }
   function statusInhalt() {
     var a = A.akte, s = a.status, kname = kanzleiName(a.kanzlei_id);
@@ -543,7 +543,7 @@
     var a = A.akte, sd = (A.daten && A.daten.stammdaten) || {};
     return '<section class="stack" aria-labelledby="erg"><h2 class="h2" id="erg">Ihre Anlage V ' + r.vz + '</h2>' +
       '<div class="sheet"><span class="stamp' + (freigegeben ? '' : ' draft') + '">' + (freigegeben ? 'Geprüft und freigegeben<br>' + esc(kanzleiName(a.kanzlei_id)) : 'Entwurf<br>nicht geprüft') + '</span>' +
-      '<div class="stack-s" style="margin-bottom:12px"><b>' + esc([sd.vorname, sd.nachname].filter(Boolean).join(' ')) + '</b><span class="small muted">' + esc(a.objekt_bezeichnung) + (freigegeben && A.pruefung ? ' · freigegeben am ' + dDE(A.pruefung.freigabe_am) : '') + '</span></div>' +
+      '<div class="stack-s" style="margin-bottom:12px"><b>' + esc([sd.vorname, sd.nachname].filter(Boolean).join(' ')) + '</b><span class="small muted">' + esc(a.objekt_bezeichnung) + (freigegeben && A.pruefung ? ', freigegeben am ' + dDE(A.pruefung.freigabe_am) : '') + '</span></div>' +
       anlageVTabelle(r) + '<p class="tiny" style="margin-top:12px">Zeilen nach dem Vordruck Anlage V 2025. Beträge in vollen Euro.</p></div>' +
       freibetragHtml(r.freibetrag) +
       '<div class="card pad stack noprint"><h3 class="h3">So geht es weiter</h3><ol class="small" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px"><li>Speichern Sie die Anlage V als PDF.</li><li>Tragen Sie die Werte in Mein ELSTER in die Anlage V Ihrer Einkommensteuererklärung ein oder geben Sie das PDF Ihrem Steuerberater.</li><li>Für den Freibetrag stellen Sie in Mein ELSTER einen Antrag auf Lohnsteuer-Ermäßigung.</li></ol>' +
@@ -560,7 +560,7 @@
     return '<ul class="docs">' + docs.map(function (d) {
       var t = (DOKTYPEN.filter(function (x) { return x.k === d.typ; })[0] || {}).t || d.typ;
       var ext = (d.dateiname.split('.').pop() || '').slice(0, 4).toUpperCase();
-      return '<li><span class="ic" aria-hidden="true">' + esc(ext) + '</span><span style="flex:1;min-width:0"><b class="small">' + esc(t) + '</b><br><span class="tiny">' + esc(d.dateiname) + ' · ' + (d.quelle === 'vertrieb' ? 'vom Vertrieb' : d.quelle === 'kanzlei' ? 'von der Kanzlei' : 'von Ihnen') + '</span></span>' +
+      return '<li><span class="ic" aria-hidden="true">' + esc(ext) + '</span><span style="flex:1;min-width:0"><b class="small">' + esc(t) + '</b><br><span class="tiny">' + esc(d.dateiname) + ', ' + (d.quelle === 'vertrieb' ? 'vom Vertrieb' : d.quelle === 'kanzlei' ? 'von der Kanzlei' : 'von Ihnen') + '</span></span>' +
         '<button class="btn ghost sm" type="button" data-act="dokOeffnen" data-pfad="' + esc(d.pfad) + '">Öffnen</button>' +
         (loeschen && d.quelle === 'kaeufer' && d.hochgeladen_von === S.session.user.id ? '<button class="btn ghost sm" type="button" data-act="dokLoeschen" data-id="' + d.id + '" data-pfad="' + esc(d.pfad) + '" aria-label="' + esc(d.dateiname) + ' löschen">Löschen</button>' : '') + '</li>';
     }).join('') + '</ul>';
@@ -768,7 +768,7 @@
       var txt = f.stimmt === true ? 'Anfangssaldo ' + eur2(f.anfang) + ' plus ' + f.n + ' Umsätze ergibt genau den Endsaldo ' + eur2(f.ende) + '.'
         : f.stimmt === false ? 'Anfangssaldo ' + eur2(f.anfang) + ' plus Umsätze ' + eur2(f.summe) + ' ergibt ' + eur2(f.anfang + f.summe) + ', laut Auszug ' + eur2(f.ende) + '. Es fehlen Umsätze oder ein Betrag stimmt nicht.'
           : (ko.dateien[k].anfang == null && ko.dateien[k].ende == null ? 'Die Datei enthält keine Salden. Tragen Sie Anfangs- und Endsaldo vom Auszug ein' : 'In der Datei fehlt der ' + (ko.dateien[k].anfang == null ? 'Anfangssaldo' : 'Endsaldo') + '. Tragen Sie ihn vom Auszug ein') + ', dann prüfen wir, ob alle Umsätze da sind.';
-      return '<div class="note ' + kl + '"><span class="ic" aria-hidden="true">' + ic + '</span><span><b>' + esc(f.name) + (f.von ? ' · ' + dDE(f.von) + ' bis ' + dDE(f.bis) : '') + '</b>' + txt +
+      return '<div class="note ' + kl + '"><span class="ic" aria-hidden="true">' + ic + '</span><span><b>' + esc(f.name) + (f.von ? ', ' + dDE(f.von) + ' bis ' + dDE(f.bis) : '') + '</b>' + txt +
         (f.stimmt !== true && edit ? '<span class="row" style="margin-top:8px"><span class="inp" style="max-width:180px"><input inputmode="decimal" data-act="saldo" data-f="' + k + '" data-w="anfang" aria-label="Anfangssaldo" placeholder="Anfangssaldo" value="' + (ko.dateien[k].anfang != null ? esc(eur2(ko.dateien[k].anfang).replace(' €', '')) : '') + '"></span><span class="inp" style="max-width:180px"><input inputmode="decimal" data-act="saldo" data-f="' + k + '" data-w="ende" aria-label="Endsaldo" placeholder="Endsaldo" value="' + (ko.dateien[k].ende != null ? esc(eur2(ko.dateien[k].ende).replace(' €', '')) : '') + '"></span></span>' : '') + '</span></div>';
     }).join('');
     var su = R.summe;
@@ -857,7 +857,7 @@
   function unterlagenHtml() {
     return '<div class="stack"><p class="small muted">PDF oder Foto, bis 20 MB je Datei. Am Handy können Sie direkt die Kamera nutzen.</p><ul class="tasks">' + DOKTYPEN.filter(function (t) { return t.k !== 'sonstiges'; }).map(function (t) {
       var da = A.docs.filter(function (d) { return d.typ === t.k; });
-      return '<li><div class="dis" style="opacity:1"><span class="n" aria-hidden="true" style="' + (da.length ? 'background:var(--ok);border-color:var(--ok);color:#fff' : '') + '">' + (da.length ? '✓' : '') + '</span><span class="t"><b>' + t.t + (t.req ? '' : ' <span class="muted" style="font-weight:400">(falls vorhanden)</span>') + '</b><span>' + (da.length ? da.map(function (d) { return esc(d.dateiname) + (d.quelle === 'vertrieb' ? ' · vom Vertrieb' : ''); }).join(', ') : 'Noch nicht vorhanden') + '</span></span>' +
+      return '<li><div class="dis" style="opacity:1"><span class="n" aria-hidden="true" style="' + (da.length ? 'background:var(--ok);border-color:var(--ok);color:#fff' : '') + '">' + (da.length ? '✓' : '') + '</span><span class="t"><b>' + t.t + (t.req ? '' : ' <span class="muted" style="font-weight:400">(falls vorhanden)</span>') + '</b><span>' + (da.length ? da.map(function (d) { return esc(d.dateiname) + (d.quelle === 'vertrieb' ? ', vom Vertrieb' : ''); }).join(', ') : 'Noch nicht vorhanden') + '</span></span>' +
         '<label class="btn sec sm">' + (da.length ? 'Weitere' : 'Hochladen') + '<input type="file" class="sr" data-act="upload" data-typ="' + t.k + '" accept="application/pdf,image/*" multiple></label></div></li>';
     }).join('') + '</ul>' +
       '<div class="drop" id="drop"><p class="small"><b>Weitere Unterlagen</b> hierher ziehen oder <label class="link" style="cursor:pointer">auswählen<input type="file" class="sr" data-act="upload" data-typ="sonstiges" accept="application/pdf,image/*" multiple></label></p></div>' +
@@ -919,7 +919,7 @@
       mount('<div class="wrap stack"><div class="row" style="align-items:flex-end"><div class="stack-s"><span class="eyebrow">' + esc(org ? org.name : 'Vertrieb') + '</span><h1 class="title">Ihre Käufer</h1></div><span class="spacer"></span><a class="btn gold" href="#/vertrieb/neu">+ Käufer übergeben</a></div>' +
         (rows.length ? (function () {
           var an = rows.filter(function (a) { return a.status !== 'eingeladen'; }).length, fe = rows.filter(function (a) { return a.status === 'erledigt'; }).length;
-          return '<div class="kpis"><div class="card kpi"><strong>' + rows.length + '</strong><span>übergeben</span></div><div class="card kpi"><strong>' + an + '</strong><span>angenommen · ' + Math.round(an / rows.length * 100) + '%</span></div><div class="card kpi dark"><strong>' + fe + '</strong><span>erledigt</span></div></div>';
+          return '<div class="kpis"><div class="card kpi"><strong>' + rows.length + '</strong><span>übergeben</span></div><div class="card kpi"><strong>' + an + '</strong><span>angenommen, ' + Math.round(an / rows.length * 100) + '%</span></div><div class="card kpi dark"><strong>' + fe + '</strong><span>erledigt</span></div></div>';
         })() : '') +
         (rows.length ? '<div class="card tw"><table><thead><tr><th>Akte</th><th>Käufer</th><th>Wohnung</th><th>Jahr</th><th>Unterlagen</th><th>Status</th></tr></thead><tbody>' +
           rows.map(function (a) { var s = VSTAT[a.status] || [a.status, 'c-grey']; return '<tr><td class="mono small">' + esc(a.nummer) + '</td><td><b>' + esc(a.kaeufer_name) + '</b><br><span class="tiny">' + esc(a.kaeufer_email) + '</span></td><td>' + esc(a.objekt_bezeichnung) + '</td><td class="num">' + a.vz + '</td><td class="num">' + a.dokumente + '</td><td><span class="chip ' + s[1] + '">' + s[0] + '</span></td></tr>'; }).join('') + '</tbody></table></div>' :
@@ -1007,9 +1007,9 @@
       '</div><p class="tiny" id="saved" aria-live="polite">Änderungen werden gespeichert und protokolliert.</p></form></details>' : '';
     var blockiert = res && res.freigabe && !res.freigabe.moeglich;
     mount('<div class="wrap stack"><a class="link small" href="#/kanzlei">← Alle Fälle</a>' +
-      '<div class="row" style="align-items:flex-end"><div class="stack-s"><span class="eyebrow">' + esc(a.nummer) + ' · Anlage V ' + a.vz + '</span><h1 class="title">' + esc(a.kaeufer_name) + '</h1><span class="muted">' + esc(a.objekt_bezeichnung) + '</span></div><span class="spacer"></span>' + statusChip(a.status) + (a.status === 'in_pruefung' ? '<span class="timer" id="timer">Prüfzeit ' + mmss((A.pruefung && A.pruefung.pruefzeit_sek) || 0) + '</span>' : '') + '</div>' +
+      '<div class="row" style="align-items:flex-end"><div class="stack-s"><span class="eyebrow">' + esc(a.nummer) + ', Anlage V ' + a.vz + '</span><h1 class="title">' + esc(a.kaeufer_name) + '</h1><span class="muted">' + esc(a.objekt_bezeichnung) + '</span></div><span class="spacer"></span>' + statusChip(a.status) + (a.status === 'in_pruefung' ? '<span class="timer" id="timer">Prüfzeit ' + mmss((A.pruefung && A.pruefung.pruefzeit_sek) || 0) + '</span>' : '') + '</div>' +
       '<div class="split"><div class="stack">' +
-      '<section class="card pad stack"><h2 class="h3">Anlage V ' + a.vz + (frei ? ' · freigegeben' : ' · Entwurf') + '</h2><div class="tw"><table><thead><tr><th>Zeile</th><th>Position und Rechenweg</th><th>Quelle</th><th class="r">Betrag</th></tr></thead><tbody>' + zeilen + '</tbody></table></div>' +
+      '<section class="card pad stack"><h2 class="h3">Anlage V ' + a.vz + (frei ? ', freigegeben' : ', Entwurf') + '</h2><div class="tw"><table><thead><tr><th>Zeile</th><th>Position und Rechenweg</th><th>Quelle</th><th class="r">Betrag</th></tr></thead><tbody>' + zeilen + '</tbody></table></div>' +
       (res && res.freibetrag && res.freibetrag.freibetrag ? '<p class="small">Freibetrag ' + res.freibetrag.jahr + ': <b>' + eur(res.freibetrag.freibetrag) + '</b>' + (res.freibetrag.steuerwirkungMonat ? ', Wirkung rund ' + eur(res.freibetrag.steuerwirkungMonat) + ' im Monat' : '') + '</p>' : '') + '</section>' +
       korr +
       (get(A.daten, 'eingabe.konto.bewegungen') ? '<section class="card pad stack"><h2 class="h3">Kontoauszug</h2><div id="kontoBox">' + kontoHtml(editierbar, false) + '</div></section>' : '') +
@@ -1062,14 +1062,14 @@
         '<div class="kpis"><div class="card kpi"><strong>' + orgs.filter(function (o) { return o.typ === 'vertrieb'; }).length + '</strong><span>Vertriebe</span></div><div class="card kpi"><strong>' + orgs.filter(function (o) { return o.typ === 'kanzlei'; }).length + '</strong><span>Kanzleien</span></div><div class="card kpi"><strong>' + team.length + '</strong><span>Teammitglieder</span></div></div>' +
         '<div class="split"><section class="card pad stack"><h2 class="h3">Organisationen</h2><div class="tw"><table><thead><tr><th>Name</th><th>Typ</th><th>Ort</th></tr></thead><tbody>' + orgs.map(function (o) { return '<tr><td><b>' + esc(o.name) + '</b></td><td>' + esc(o.typ) + '</td><td class="small">' + esc(o.anschrift || '') + '</td></tr>'; }).join('') + '</tbody></table></div>' +
         '<form class="stack" id="fOrg"><h3 class="h3">Neue Organisation</h3><div class="grid2"><div class="field"><label for="o_name">Name</label><div class="inp"><input id="o_name" required></div></div><div class="field"><label for="o_typ">Typ</label><div class="inp"><select id="o_typ"><option value="vertrieb">Vertrieb</option><option value="kanzlei">Kanzlei</option><option value="hausverwaltung">Hausverwaltung</option></select></div></div></div><div class="field"><label for="o_ort">Anschrift oder Ort</label><div class="inp"><input id="o_ort"></div></div><button class="btn sec" type="submit">Anlegen</button></form></section>' +
-        '<section class="card pad stack"><h2 class="h3">Team</h2><ul class="docs">' + team.map(function (t) { return '<li><span style="flex:1"><b class="small">' + esc(t.name || t.email) + '</b><br><span class="tiny">' + esc(t.email) + ' · ' + esc(t.rolle) + ' · ' + esc(oname(t.organisation_id)) + '</span></span><span class="chip c-ok">aktiv</span>' + (t.rolle !== 'admin' ? '<button class="btn ghost sm" type="button" data-act="anmeldelink" data-mail="' + esc(t.email) + '">Anmeldelink</button>' : '') + '</li>'; }).join('') +
-        einl.filter(function (e) { return !team.some(function (t) { return String(t.email).toLowerCase() === String(e.email).toLowerCase(); }); }).map(function (e) { return '<li><span style="flex:1"><b class="small">' + esc(e.name || e.email) + '</b><br><span class="tiny">' + esc(e.email) + ' · ' + esc(e.rolle) + ' · ' + esc(oname(e.organisation_id)) + '</span></span><span class="chip c-grey">eingeladen</span><button class="btn ghost sm" type="button" data-act="anmeldelink" data-mail="' + esc(e.email) + '">Anmeldelink</button></li>'; }).join('') + '</ul>' +
+        '<section class="card pad stack"><h2 class="h3">Team</h2><ul class="docs">' + team.map(function (t) { return '<li><span style="flex:1"><b class="small">' + esc(t.name || t.email) + '</b><br><span class="tiny">' + esc(t.email) + ', ' + esc(t.rolle) + ', ' + esc(oname(t.organisation_id)) + '</span></span><span class="chip c-ok">aktiv</span>' + (t.rolle !== 'admin' ? '<button class="btn ghost sm" type="button" data-act="anmeldelink" data-mail="' + esc(t.email) + '">Anmeldelink</button>' : '') + '</li>'; }).join('') +
+        einl.filter(function (e) { return !team.some(function (t) { return String(t.email).toLowerCase() === String(e.email).toLowerCase(); }); }).map(function (e) { return '<li><span style="flex:1"><b class="small">' + esc(e.name || e.email) + '</b><br><span class="tiny">' + esc(e.email) + ', ' + esc(e.rolle) + ', ' + esc(oname(e.organisation_id)) + '</span></span><span class="chip c-grey">eingeladen</span><button class="btn ghost sm" type="button" data-act="anmeldelink" data-mail="' + esc(e.email) + '">Anmeldelink</button></li>'; }).join('') + '</ul>' +
         '<form class="stack" id="fTeam"><h3 class="h3">Mitarbeiter einladen</h3><p class="tiny">Die Person meldet sich danach einfach mit dieser E-Mail an und bekommt automatisch die Rolle.</p><div class="grid2"><div class="field"><label for="t_mail">E-Mail</label><div class="inp"><input id="t_mail" type="email" required></div></div><div class="field"><label for="t_name">Name</label><div class="inp"><input id="t_name"></div></div><div class="field"><label for="t_rolle">Rolle</label><div class="inp"><select id="t_rolle"><option value="vertrieb">Vertrieb</option><option value="kanzlei">Kanzlei</option><option value="hausverwaltung">Hausverwaltung</option><option value="admin">Verwaltung</option></select></div></div><div class="field"><label for="t_org">Organisation</label><div class="inp"><select id="t_org">' + orgs.map(function (o) { return '<option value="' + o.id + '">' + esc(o.name) + '</option>'; }).join('') + '</select></div></div></div><button class="btn sec" type="submit">Einladen</button></form></section></div></div>', 'Verwaltung');
     } catch (e) { fehler(e); }
   }
   function viewKonto() {
     var rn = { kaeufer: 'Kapitalanleger', vertrieb: 'Vertrieb', kanzlei: 'Kanzlei', admin: 'Verwaltung' }[S.profil.rolle] || '';
-    mount('<div class="wrap narrow stack"><h1 class="title">Ihr Konto</h1><div class="card pad stack"><div class="row"><span class="tasks" style="display:contents"><span class="n" style="width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:var(--y);color:#111">' + ico('person') + '</span></span><span class="stack-s" style="gap:2px"><b>' + esc(S.profil.name || S.profil.email) + '</b><span class="small muted">' + esc(S.profil.email) + ' · ' + rn + '</span></span></div></div>' +
+    mount('<div class="wrap narrow stack"><h1 class="title">Ihr Konto</h1><div class="card pad stack"><div class="row"><span class="tasks" style="display:contents"><span class="n" style="width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:var(--y);color:#111">' + ico('person') + '</span></span><span class="stack-s" style="gap:2px"><b>' + esc(S.profil.name || S.profil.email) + '</b><span class="small muted">' + esc(S.profil.email) + ', ' + rn + '</span></span></div></div>' +
       (C.googleMapsKey && luftbildErlaubt() ? '<div class="card pad row"><span class="small" style="flex:1">Das 3D-Luftbild Ihrer Wohnung ist eingeschaltet. Dafür lädt Ihr Browser Karten von Google.</span><button class="btn sec sm" type="button" data-act="luftbildAus">Ausschalten</button></div>' : '') +
       '<div class="row small"><a class="link" href="impressum.html">Impressum</a><a class="link" href="datenschutz.html">Datenschutz</a><span class="spacer"></span><button class="btn sec" data-act="abmelden">Abmelden</button></div></div>', 'Konto');
   }
@@ -1184,7 +1184,7 @@
         A.daten.erledigt = A.daten.erledigt || {}; A.daten.erledigt[k] = true;
         q(await sb.from('akte_daten').update({ eingabe: A.daten.eingabe, stammdaten: A.daten.stammdaten, fallcheck: A.daten.fallcheck, erledigt: A.daten.erledigt }).eq('akte_id', A.akte.id));
         var i = ABS.findIndex(function (x) { return x.k === k; });
-        toast('✓ ' + ABS[i].t + ' erledigt. Noch ' + Math.max(0, 7 - fortschritt()) + ' von 7.');
+        toast(ABS[i].t + ' erledigt. Noch ' + Math.max(0, 7 - fortschritt()) + ' von 7.');
         var naechste = ABS.slice(i + 1).filter(function (x) { return !absFertig(x.k); })[0];
         if (A.akte.status === 'rueckfrage') { location.hash = '#/akte/' + A.akte.id; return; }
         location.hash = '#/akte/' + A.akte.id + (naechste && (naechste.k !== 'auftrag' || fortschritt() >= 7) ? '/' + naechste.k : '');
