@@ -1389,6 +1389,20 @@
     } catch (err) { fehler(err); var b = f.querySelector('button[type="submit"],button:not([type])'); if (b) b.disabled = false; }
   });
 
+  // Automatisch aktualisieren: Die Version steht im Script-Pfad (?v=), die aktuelle in assets/version.json
+  var APP_V = (function () { var s = document.querySelector('script[src*="assets/app.js"]'), m = s && /[?&]v=(\d+)/.exec(s.src); return m ? +m[1] : 0; })();
+  function versionPruefen() {
+    if (!APP_V || location.search.indexOf('demo=') >= 0 && location.hostname === 'localhost') return;
+    fetch('assets/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (!j || !(+j.v > APP_V)) return;
+      var tippt = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+      if (tippt || sessionStorageGet('op_neu_v') === String(j.v)) return; // höchstens einmal je Version neu laden
+      sessionStorageSet('op_neu_v', String(j.v)); location.reload();
+    }).catch(function () { });
+  }
+  setTimeout(versionPruefen, 4000);
+  setInterval(versionPruefen, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) versionPruefen(); });
   window.addEventListener('hashchange', function () { if (S.session && S.profil) route(); });
   window.addEventListener('beforeunload', function () { if (S._timerRest) S._timerRest(); });
   sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_IN' || ev === 'SIGNED_OUT') { if (ev === 'SIGNED_IN' && S.session) return; setTimeout(boot, 0); } });
