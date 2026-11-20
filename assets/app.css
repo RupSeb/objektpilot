@@ -383,3 +383,11 @@ tr.kx-anders td{opacity:.6}
   table.kt select.mini{max-width:100%;width:100%}
   table.kt td:nth-child(5) select.mini{width:auto}
 }
+
+/* 3D-Luftbild */
+.luftbild{position:relative;margin:0;aspect-ratio:16/9;border-radius:var(--r);overflow:hidden;background:#151515 radial-gradient(120% 90% at 85% 0%,rgba(255,210,63,.18),transparent 60%)}
+.luftbild gmp-map-3d{display:block;width:100%;height:100%}
+.lb-frage{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:8px;padding:22px;color:#fff}
+.lb-frage b{font-size:20px;font-weight:750;letter-spacing:-.02em}
+.lb-frage span{font-size:13.5px;color:#cfcfcf;max-width:48ch;text-wrap:pretty}
+@media (max-width:640px){.luftbild{aspect-ratio:4/3}}

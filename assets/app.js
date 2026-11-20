@@ -389,7 +389,7 @@
       await akteLaden(id); S.letzteAkte = id; nav();
       if (A.akte.status === 'eingeladen') { await sb.rpc('kaeufer_oeffnen', { p_akte: id }); A.akte.status = 'in_erfassung'; }
       var a = A.akte, offen = a.status === 'in_erfassung';
-      var kopf = '<div class="stack-s"><span class="eyebrow">' + esc(a.nummer) + ' · Steuerjahr ' + a.vz + '</span><h1 class="title">' + esc(a.objekt_bezeichnung) + '</h1><div class="row">' + statusChip(a.status) + '</div></div>';
+      var kopf = '<div class="stack-s"><span class="eyebrow">' + esc(a.nummer) + ' · Steuerjahr ' + a.vz + '</span><h1 class="title">' + esc(a.objekt_bezeichnung) + '</h1><div class="row">' + statusChip(a.status) + '</div></div>' + luftbildHtml();
       if (offen) {
         var n = fortschritt(), naechste = ABS.filter(function (x) { return !absFertig(x.k); })[0] || ABS[7];
         var alleFertig = n >= 7;
@@ -413,9 +413,11 @@
               '<span class="chip ' + (nk ? (offenK ? 'c-warn' : 'c-ok') : 'c-grey') + '">' + (nk ? (offenK ? 'Klären' : 'Eingelesen') : 'Freiwillig') + '</span></a></li></ul>';
           })() +
           '<div class="note info"><span class="ic" aria-hidden="true">i</span><span><b>Wer sieht was?</b>Ihre Angaben sehen nur Sie und die Kanzlei, die Sie wählen.' + (a.vertrieb_id ? ' Ihr Vertrieb sieht keine Steuerdaten.' : '') + '</span></div></div>', a.objekt_bezeichnung);
+        if (luftbildErlaubt()) luftbildStarten();
         return;
       }
       mount('<div class="wrap narrow stack">' + kopf + statusInhalt() + '</div>', a.objekt_bezeichnung);
+      if (luftbildErlaubt()) luftbildStarten();
     } catch (e) { fehler(e); }
   }
   function werktagePlus(s, n) {
@@ -520,7 +522,7 @@
     $$('.fsegs i').forEach(function (el, j) { el.className = j < FK.i ? 'd' : j === FK.i ? 'now' : ''; });
     var letzte = FK.i >= FK.steps.length - 1, w = $('#fWeiter'), z = $('#fZurueck');
     if (w) w.textContent = letzte ? 'Speichern und weiter' : 'Weiter';
-    if (z) z.disabled = FK.i === 0;
+    if (z) { z.disabled = false; z.title = FK.i === 0 ? 'Zum vorigen Schritt' : 'Zur vorigen Frage'; }
     var cur = FK.steps[FK.i]; cur.classList.remove('fk-rein'); void cur.offsetWidth; cur.classList.add('fk-rein');
     if (fokus) { var f = cur.querySelector('input,select,button'); if (f) f.focus({ preventScroll: true }); }
   }
@@ -578,6 +580,64 @@
         '<div class="note ok"><span class="ic" aria-hidden="true">✓</span><span><b>Standardfall</b>Ihre Anlage V gibt es zum Festpreis. ' + (c.angestellt === 'ja' ? 'Weil Sie angestellt sind, bekommen Sie zusätzlich die Zahlen für den Freibetrag.' : 'Statt eines Freibetrags passt bei Ihnen eine Anpassung der Vorauszahlungen, das klärt die Kanzlei.') + '</span></div>') : '') + '</div>';
   }
   function sonderfall(c) { return c.nutzung && (c.nutzung !== 'dauer' || c.wohnungen === '4+' || c.art === 'denkmal'); }
+
+  /* 3D-Luftbild der Wohnung (Google Maps, lädt erst nach Einwilligung) */
+  var MAPS = null;
+  function mapsLaden() {
+    if (MAPS) return MAPS;
+    MAPS = new Promise(function (ok, nein) {
+      window.__opMaps = function () { ok(window.google.maps); };
+      var s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(C.googleMapsKey) + '&loading=async&libraries=maps3d,geocoding,elevation&language=de&region=DE&callback=__opMaps';
+      s.async = true;
+      s.onerror = function () { MAPS = null; nein(new Error('Karten konnten nicht geladen werden')); };
+      document.head.appendChild(s);
+    });
+    return MAPS;
+  }
+  function luftbildErlaubt() { try { return localStorage.getItem('op_luftbild') === '1'; } catch (e) { return false; } }
+  function luftbildSetzen(ja) { try { if (ja) localStorage.setItem('op_luftbild', '1'); else localStorage.removeItem('op_luftbild'); } catch (e) { } }
+  function luftbildAdresse() {
+    var a = get(A.daten || {}, 'eingabe.objekt.adresse') || (A.akte && A.akte.objekt_bezeichnung) || '';
+    return String(a).replace(/[,;]?\s*(WE|Whg\.?|Wohnung|App\.?|Apartment|Einheit)\s*[\w\/.-]+.*$/i, '').trim();
+  }
+  function luftbildHtml() {
+    var adr = luftbildAdresse();
+    if (!C.googleMapsKey || !adr) return '';
+    return '<figure class="luftbild" id="luftbild" data-adresse="' + esc(adr) + '">' + (luftbildErlaubt() ? '<div class="lb-frage"><span>Luftbild wird geladen …</span></div>' :
+      '<div class="lb-frage"><b>Ihre Wohnung von oben</b><span>Für das 3D-Luftbild lädt Ihr Browser Karten von Google und überträgt dabei die Adresse der Wohnung an Google.</span><button class="btn sm" type="button" data-act="luftbild">3D-Luftbild anzeigen</button></div>') + '</figure>';
+  }
+  function geoCache(adr, wert) {
+    var k = 'op_geo_' + adr.toLowerCase();
+    try { if (wert) { localStorage.setItem(k, JSON.stringify(wert)); return wert; } return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return wert || null; }
+  }
+  async function luftbildStarten() {
+    var fig = $('#luftbild'); if (!fig) return;
+    var adr = fig.dataset.adresse;
+    try {
+      var g = await mapsLaden();
+      var geo = geoCache(adr);
+      if (!geo) {
+        var gl = await g.importLibrary('geocoding');
+        var r = await new gl.Geocoder().geocode({ address: adr, region: 'de' });
+        if (!r.results || !r.results.length) throw new Error('Adresse nicht gefunden');
+        var loc = r.results[0].geometry.location;
+        geo = { lat: loc.lat(), lng: loc.lng(), alt: 0 };
+        try { var el = await g.importLibrary('elevation'); var er = await new el.ElevationService().getElevationForLocations({ locations: [loc] }); if (er.results && er.results[0]) geo.alt = er.results[0].elevation; } catch (x) { }
+        geoCache(adr, geo);
+      }
+      var m3 = await g.importLibrary('maps3d');
+      if (!$('#luftbild')) return;
+      var center = { lat: geo.lat, lng: geo.lng, altitude: geo.alt + 12 };
+      var map = new m3.Map3DElement({ center: center, range: 280, tilt: 62, heading: 25, mode: m3.MapMode ? m3.MapMode.HYBRID : 'HYBRID', defaultUIHidden: true, gestureHandling: 'COOPERATIVE' });
+      fig.innerHTML = ''; fig.appendChild(map);
+      if (m3.Marker3DElement) { try { map.append(new m3.Marker3DElement({ position: { lat: geo.lat, lng: geo.lng, altitude: 40 }, altitudeMode: 'RELATIVE_TO_GROUND', extruded: true })); } catch (x) { } }
+      setTimeout(function () { try { map.flyCameraAround({ camera: { center: center, range: 280, tilt: 62, heading: 25 }, durationMillis: 45000, repeatCount: Infinity }); } catch (x) { } }, 2500);
+    } catch (e) {
+      console.warn(e);
+      var f2 = $('#luftbild'); if (f2) f2.innerHTML = '<div class="lb-frage"><span>Das Luftbild ist für diese Adresse gerade nicht verfügbar.</span></div>';
+    }
+  }
 
   /* Miete mit Mieterwechsel oder Leerstand */
   function mieteHtml() {
@@ -935,6 +995,7 @@
   function viewKonto() {
     var rn = { kaeufer: 'Kapitalanleger', vertrieb: 'Vertrieb', kanzlei: 'Kanzlei', admin: 'Verwaltung' }[S.profil.rolle] || '';
     mount('<div class="wrap narrow stack"><h1 class="title">Ihr Konto</h1><div class="card pad stack"><div class="row"><span class="tasks" style="display:contents"><span class="n" style="width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:var(--y);color:#111">' + ico('person') + '</span></span><span class="stack-s" style="gap:2px"><b>' + esc(S.profil.name || S.profil.email) + '</b><span class="small muted">' + esc(S.profil.email) + ' · ' + rn + '</span></span></div></div>' +
+      (C.googleMapsKey && luftbildErlaubt() ? '<div class="card pad row"><span class="small" style="flex:1">Das 3D-Luftbild Ihrer Wohnung ist eingeschaltet. Dafür lädt Ihr Browser Karten von Google.</span><button class="btn sec sm" type="button" data-act="luftbildAus">Ausschalten</button></div>' : '') +
       '<div class="row small"><a class="link" href="impressum.html">Impressum</a><a class="link" href="datenschutz.html">Datenschutz</a><span class="spacer"></span><button class="btn sec" data-act="abmelden">Abmelden</button></div></div>', 'Konto');
   }
 
@@ -963,7 +1024,12 @@
     var act = b.dataset.act;
     try {
       if (act === 'fWeiter') { fokusWeiter(); return; }
-      if (act === 'fZurueck') { if (FK && FK.i > 0) { FK.i--; fokusZeigen(true); } return; }
+      if (act === 'fZurueck') {
+        if (FK && FK.i > 0) { FK.i--; fokusZeigen(true); return; }
+        var ai = ABS.findIndex(function (x) { return x.k === aktAbs; });
+        location.hash = '#/akte/' + A.akte.id + (ai > 0 ? '/' + ABS[ai - 1].k : '');
+        return;
+      }
       if (act === 'fAlle') { viewAbschnitt._alle = true; route(); return; }
       if (act === 'aliasKopieren') { try { await navigator.clipboard.writeText(b.dataset.v); toast('Kopiert: ' + b.dataset.v); } catch (x) { toast(b.dataset.v); } return; }
       if (act === 'abmelden') { stopTimer(); await sb.auth.signOut(); A = { akte: null, daten: null, docs: [], msgs: [], pruefung: null, mandat: null }; location.hash = '#/'; boot(); return; }
@@ -990,6 +1056,8 @@
         speichern(); mieteNeuZeichnen(1); return;
       }
       if (act === 'mwPlus') { var vs = get(A.daten, 'eingabe.miete.vertraege') || [], nn = Math.max(2, vs.length); set(A.daten, 'eingabe.miete.vertraege.' + nn, {}); speichern(); mieteNeuZeichnen(nn + 1); return; }
+      if (act === 'luftbild') { luftbildSetzen(true); var lf = $('#luftbild'); if (lf) lf.innerHTML = '<div class="lb-frage"><span>Luftbild wird geladen …</span></div>'; luftbildStarten(); return; }
+      if (act === 'luftbildAus') { luftbildSetzen(false); toast('Das Luftbild wird nicht mehr geladen.'); viewKonto(); return; }
       if (act === 'kfilter') { KFILTER = b.dataset.v; kontoAnzeigeNeu(); return; }
       if (act === 'kontoPrivat') {
         var kp = get(A.daten, 'eingabe.konto'), np = 0;
