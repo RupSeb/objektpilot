@@ -308,14 +308,22 @@
     return '<h1 class="h2">Anmelden</h1><p class="muted">Ohne Passwort. Wir schicken Ihnen einen Code per E-Mail.</p>' +
       '<form class="stack" id="fMail" novalidate><div class="field"><label for="mail">E-Mail-Adresse</label><div class="inp"><input id="mail" type="email" autocomplete="email" inputmode="email" required value="' + esc(mail) + '" aria-describedby="mail_e"></div><span class="errmsg" id="mail_e" aria-live="polite"></span></div>' +
       '<button class="btn block" type="submit">Code anfordern</button></form>' +
+      '<p class="small"><button class="link" type="button" data-act="pwModus">Mit Passwort anmelden</button></p>' +
       '<p class="tiny">Mit der Anmeldung gelten unsere <a href="datenschutz.html">Datenschutzhinweise</a>.</p>';
   }
+  function authPasswort(mail) {
+    return '<h1 class="h2">Mit Passwort anmelden</h1><p class="muted">Das geht, wenn Sie unter „Konto“ schon ein Passwort festgelegt haben. Sonst melden Sie sich einmal mit Code an.</p>' +
+      '<form class="stack" id="fPw" novalidate><div class="field"><label for="pmail">E-Mail-Adresse</label><div class="inp"><input id="pmail" type="email" autocomplete="username" inputmode="email" required value="' + esc(mail) + '"></div></div>' +
+      '<div class="field"><label for="ppw">Passwort</label><div class="inp"><input id="ppw" type="password" autocomplete="current-password" required aria-describedby="ppw_e"></div><span class="errmsg" id="ppw_e" aria-live="polite"></span></div>' +
+      '<button class="btn block" type="submit">Anmelden</button></form>' +
+      '<p class="small"><button class="link" type="button" data-act="codeModus">Lieber mit Code per E-Mail</button></p>';
+  }
   function authSchritt2(mail) {
-    return '<h1 class="h2">Code eingeben</h1><p class="muted">Wir haben eine E-Mail an <b>' + esc(mail) + '</b> geschickt. Geben Sie den Code ein oder tippen Sie auf den Link in der E-Mail.</p>' +
+    return '<h1 class="h2">Code eingeben</h1><p class="muted">Wir haben eine E-Mail an <b>' + esc(mail) + '</b> geschickt. Geben Sie den Code aus der E-Mail hier ein.</p>' +
       '<form class="stack" id="fCode" novalidate><div class="field"><label for="code">Code aus der E-Mail</label><div class="inp"><input id="code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required aria-describedby="code_e"></div><span class="errmsg" id="code_e" aria-live="polite"></span></div>' +
       '<button class="btn block" type="submit">Anmelden</button></form>' +
       '<div class="row small"><button class="link" type="button" data-act="neuerCode" id="btnNeu" disabled>Neuen Code senden</button><span class="muted" id="cd"></span><span class="spacer"></span><button class="link" type="button" data-act="andereMail">Andere Adresse</button></div>' +
-      '<p class="tiny">Keine E-Mail da? Schauen Sie auch im Spam-Ordner nach.</p>';
+      '<details class="help"><summary>Keine E-Mail da?</summary><p>Schauen Sie im Spam-Ordner nach. Firmenpostfächer halten neue Absender manchmal in einer Quarantäne fest, dann hilft Ihre IT oder eine private Adresse. Klappt es gar nicht, schreiben Sie an ' + esc((window.OP_CONFIG && OP_CONFIG.kontakt) || 'uns') + '. Wir schicken Ihnen dann einen persönlichen Anmeldelink.</p></details>';
   }
   function sessionStorageGet(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
   function sessionStorageSet(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { } }
@@ -1094,6 +1102,10 @@
   function viewKonto() {
     var rn = { kaeufer: 'Kapitalanleger', vertrieb: 'Vertrieb', kanzlei: 'Kanzlei', admin: 'Verwaltung' }[S.profil.rolle] || '';
     mount('<div class="wrap narrow stack"><h1 class="title">Ihr Konto</h1><div class="card pad stack"><div class="row"><span class="tasks" style="display:contents"><span class="n" style="width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:var(--y);color:#111">' + ico('person') + '</span></span><span class="stack-s" style="gap:2px"><b>' + esc(S.profil.name || S.profil.email) + '</b><span class="small muted">' + esc(S.profil.email) + ', ' + rn + '</span></span></div></div>' +
+      '<form class="card pad stack" id="fPwNeu" novalidate><h2 class="h3">Passwort für die Anmeldung</h2><p class="small">Freiwillig. Mit Passwort melden Sie sich an, ohne auf eine E-Mail zu warten. Der Code per E-Mail bleibt als zweiter Weg.' + (S.profil.rolle !== 'kaeufer' ? ' Der Code aus Ihrer Authenticator-App wird weiter abgefragt.' : '') + '</p>' +
+      '<input type="email" autocomplete="username" value="' + esc(S.profil.email) + '" hidden>' +
+      '<div class="grid2"><div class="field"><label for="pw1">Neues Passwort</label><div class="inp"><input id="pw1" type="password" autocomplete="new-password" minlength="10" required></div></div><div class="field"><label for="pw2">Wiederholen</label><div class="inp"><input id="pw2" type="password" autocomplete="new-password" minlength="10" required></div></div></div>' +
+      '<span class="errmsg" id="pw_e" aria-live="polite"></span><div class="row"><button class="btn sec" type="submit">Passwort speichern</button><span class="tiny">Mindestens 10 Zeichen.</span></div></form>' +
       (C.googleMapsKey && luftbildErlaubt() ? '<div class="card pad row"><span class="small" style="flex:1">Das 3D-Luftbild Ihrer Wohnung ist eingeschaltet. Dafür lädt Ihr Browser Karten von Google.</span><button class="btn sec sm" type="button" data-act="luftbildAus">Ausschalten</button></div>' : '') +
       '<div class="row small"><a class="link" href="impressum.html">Impressum</a><a class="link" href="datenschutz.html">Datenschutz</a><span class="spacer"></span><button class="btn sec" data-act="abmelden">Abmelden</button></div></div>', 'Konto');
   }
@@ -1132,6 +1144,8 @@
       if (act === 'fAlle') { viewAbschnitt._alle = true; route(); return; }
       if (act === 'aliasKopieren') { try { await navigator.clipboard.writeText(b.dataset.v); toast('Kopiert: ' + b.dataset.v); } catch (x) { toast(b.dataset.v); } return; }
       if (act === 'abmelden') { stopTimer(); await sb.auth.signOut(); A = { akte: null, daten: null, docs: [], msgs: [], pruefung: null, mandat: null }; location.hash = '#/'; boot(); return; }
+      if (act === 'pwModus') { $('#authBox').innerHTML = authPasswort(sessionStorageGet('op_mail') || ''); var pm = $('#pmail'); (pm.value ? $('#ppw') : pm).focus(); return; }
+      if (act === 'codeModus') { $('#authBox').innerHTML = authSchritt1(sessionStorageGet('op_mail') || ''); $('#mail').focus(); return; }
       if (act === 'andereMail') { $('#authBox').innerHTML = authSchritt1(''); $('#mail').focus(); return; }
       if (act === 'neuerCode') { var m = sessionStorageGet('op_mail'); await codeSenden(m); toast('Neuer Code ist unterwegs.'); countdown(); return; }
       if (act === 'fc') {
@@ -1313,6 +1327,24 @@
         var btn = f.querySelector('button'); btn.disabled = true; btn.textContent = 'Wird gesendet …';
         try { await codeSenden(mail); } catch (err) { btn.disabled = false; btn.textContent = 'Code anfordern'; throw err; }
         $('#authBox').innerHTML = authSchritt2(mail); $('#code').focus(); countdown(); return;
+      }
+      if (f.id === 'fPw') {
+        var pmail = $('#pmail').value.trim(), ppw = $('#ppw').value;
+        if (!pmail || !ppw) { $('#ppw_e').textContent = 'Bitte E-Mail und Passwort eingeben.'; return; }
+        var pb = f.querySelector('button[type="submit"]'); pb.disabled = true;
+        var pr = await sb.auth.signInWithPassword({ email: pmail, password: ppw });
+        pb.disabled = false;
+        if (pr.error) { $('#ppw_e').textContent = /invalid/i.test(pr.error.message) ? 'E-Mail oder Passwort stimmt nicht. Noch kein Passwort? Dann zuerst mit Code anmelden.' : menschlich(pr.error.message); $('#ppw').focus(); return; }
+        sessionStorageSet('op_mail', pmail); return;
+      }
+      if (f.id === 'fPwNeu') {
+        var p1 = $('#pw1').value, p2 = $('#pw2').value, pe = $('#pw_e');
+        if (p1.length < 10) { pe.textContent = 'Das Passwort braucht mindestens 10 Zeichen.'; return; }
+        if (p1 !== p2) { pe.textContent = 'Die beiden Eingaben sind nicht gleich.'; return; }
+        var ur = await sb.auth.updateUser({ password: p1 });
+        if (ur.error) { pe.textContent = /reauth/i.test(ur.error.message) ? 'Bitte melden Sie sich einmal neu mit Code an und versuchen es dann erneut.' : /weak|pwned|leak/i.test(ur.error.message) ? 'Dieses Passwort ist zu unsicher oder schon in einem Datenleck aufgetaucht. Bitte ein anderes wählen.' : menschlich(ur.error.message); return; }
+        $('#pw1').value = ''; $('#pw2').value = ''; pe.textContent = '';
+        toast('Passwort gespeichert. Ab jetzt können Sie sich auch damit anmelden.'); return;
       }
       if (f.id === 'fCode') {
         var code = $('#code').value.replace(/\s/g, '');
