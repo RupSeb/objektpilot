@@ -750,7 +750,7 @@
   }
   async function auslesen(id, typ, name) {
     OCR = { id: id, typ: typ, laeuft: true };
-    ocrRahmen('<span class="eyebrow">Texterkennung</span><h2 class="h3" id="ocrTitel">Wir lesen ' + esc(kurzName(name)) + '</h2><p class="small muted">Das dauert meist 10 bis 30 Sekunden. Sie können währenddessen hier warten.</p><div class="ocr-laden" aria-hidden="true"><i></i></div><div class="row"><span class="spacer"></span><button class="btn ghost sm" type="button" data-act="ocrZu">Abbrechen</button></div>');
+    ocrRahmen('<span class="eyebrow">Texterkennung</span><h2 class="h3" id="ocrTitel">Wir lesen ' + esc(kurzName(name)) + '</h2><p class="small muted">Das dauert meist 10 bis 30 Sekunden. Testbetrieb: Bitte vorerst nur Musterunterlagen verwenden.</p><div class="ocr-laden" aria-hidden="true"><i></i></div><div class="row"><span class="spacer"></span><button class="btn ghost sm" type="button" data-act="ocrZu">Abbrechen</button></div>');
     try {
       var r = await sb.functions.invoke('auslesen', { body: { dokument_id: id } });
       if (!OCR || OCR.id !== id) return;
