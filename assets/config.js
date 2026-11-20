@@ -6,5 +6,5 @@ window.OP_CONFIG = {
   textVersionMandat: 'mandat-anlagev-2026-11',
   // Google Maps (3D-Luftbild der Wohnung). Leer = Funktion aus. Schlüssel in der Google Cloud auf
   // app.stratvell.net beschränken. Geladen wird erst, wenn der Nutzer das Luftbild einschaltet.
-  googleMapsKey: ''
+  googleMapsKey: 'AIzaSyDAIeI9e2jB8f2KcHmwcnGrXH0QrVXMYWk'
 };
