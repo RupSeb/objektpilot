@@ -101,7 +101,7 @@
       { p: 'eingabe.erwerb.nebenkosten', l: 'Kaufnebenkosten', t: 'eur', req: 1, h: 'Grunderwerbsteuer, Notar und Grundbuch für den Kauf, Makler. Kosten für die Grundschuld gehören zur Finanzierung.' },
       { p: 'eingabe.erwerb.ruecklageImKaufpreis', l: 'Anteil Erhaltungsrücklage im Kaufpreis', t: 'eur', h: 'Steht manchmal im Kaufvertrag. Wenn nicht erwähnt, leer lassen.' },
       { p: 'eingabe.inventar.0.ak', l: 'Einbauküche oder Möbel im Kaufpreis', t: 'eur', h: 'Nur wenn im Kaufvertrag ein eigener Betrag genannt ist.' },
-      { p: 'eingabe.erwerb.afaMethode', l: 'Abschreibung', t: 'select', req: 1, opts: [['linear', 'Linear'], ['degressiv', 'Degressiv 5 % (Neubau)']], h: 'Bei Neubauten mit Baubeginn ab Oktober 2023 ist oft die degressive Abschreibung möglich. Die Kanzlei prüft das.' }
+      { p: 'eingabe.erwerb.afaMethode', l: 'Abschreibung', t: 'select', req: 1, opts: [['linear', 'Linear'], ['degressiv', 'Degressiv 5% (Neubau)']], h: 'Bei Neubauten mit Baubeginn ab Oktober 2023 ist oft die degressive Abschreibung möglich. Die Kanzlei prüft das.' }
     ],
     miete: [
       { p: 'eingabe.miete.kaltMonat', l: 'Kaltmiete pro Monat', t: 'eur', req: 1, h: 'Laut Mietvertrag, ohne Nebenkosten.' },
@@ -131,7 +131,7 @@
       { p: 'stammdaten.steuerId', l: 'Steuerliche Identifikationsnummer', t: 'steuerid', req: 1, h: 'Elf Ziffern. Steht auf Ihrer Lohnabrechnung oder dem letzten Steuerbescheid.' },
       { p: 'stammdaten.finanzamt', l: 'Zuständiges Finanzamt', t: 'text', h: 'Das Finanzamt Ihres Wohnorts. Wenn Sie es nicht wissen, leer lassen.' },
       { p: 'stammdaten.steuernummer', l: 'Steuernummer', t: 'text', h: 'Nur wenn Sie schon eine haben, zum Beispiel aus einem Steuerbescheid.' },
-      { p: 'eingabe.personen.grenzsteuersatz', l: 'Ihr Grenzsteuersatz', t: 'pct', h: 'Nur für die Schätzung Ihrer monatlichen Ersparnis. Bei rund 60.000 € Jahresbrutto sind es meist um 40 %. Leer lassen geht auch.' }
+      { p: 'eingabe.personen.grenzsteuersatz', l: 'Ihr Grenzsteuersatz', t: 'pct', h: 'Nur für die Schätzung Ihrer monatlichen Ersparnis. Bei rund 60.000 € Jahresbrutto sind es meist um 40%. Leer lassen geht auch.' }
     ]
   };
   var IC = {
@@ -583,11 +583,11 @@
     var vorschau = r ? '<section class="card pad stack" aria-labelledby="vs"><div class="row"><h2 class="h3" id="vs">Vorschau Ihrer Anlage V</h2><span class="chip c-gold">Wird von der Kanzlei geprüft</span></div>' +
       '<div class="kpis"><div class="kpi card"><strong class="num">' + eur(r.summen.einnahmen) + '</strong><span>Einnahmen ' + A.akte.vz + '</span></div><div class="kpi card"><strong class="num">' + eur(r.summen.werbungskosten) + '</strong><span>Werbungskosten</span></div><div class="kpi card"><strong class="num">' + eur(r.summen.ueberschuss) + '</strong><span>Ergebnis</span></div></div>' +
       (r.freibetrag && r.freibetrag.steuerwirkungMonat ? '<p class="small">Mit Freibetrag ab ' + r.freibetrag.jahr + ' voraussichtlich rund <b>' + eur(r.freibetrag.steuerwirkungMonat) + ' mehr netto im Monat</b>.</p>' : '') + '</section>' : '';
-    var opts = kanzleien.map(function (o) { return '<button type="button" class="opt" data-act="wahl" data-v="' + o.id + '" aria-pressed="' + (w === o.id) + '"><i class="dot" aria-hidden="true"></i><span><b>' + esc(o.name) + '</b><span>' + (sf ? 'Prüft Ihren Fall und macht Ihnen ein Angebot' : 'Prüft und gibt frei. Festpreis ' + eur2(preis(o)) + ' inkl. 19 % USt, Rückfragen inklusive') + '</span></span></button>'; }).join('') +
+    var opts = kanzleien.map(function (o) { return '<button type="button" class="opt" data-act="wahl" data-v="' + o.id + '" aria-pressed="' + (w === o.id) + '"><i class="dot" aria-hidden="true"></i><span><b>' + esc(o.name) + '</b><span>' + (sf ? 'Prüft Ihren Fall und macht Ihnen ein Angebot' : 'Prüft und gibt frei. Festpreis ' + eur2(preis(o)) + ' inkl. 19% USt, Rückfragen inklusive') + '</span></span></button>'; }).join('') +
       '<button type="button" class="opt" data-act="wahl" data-v="eigen" aria-pressed="' + (w === 'eigen') + '"><i class="dot" aria-hidden="true"></i><span><b>Mein eigener Steuerberater</b><span>Sie bekommen die vorbereitete Anlage V und alle Unterlagen als Datenpaket</span></span></button>';
     var gew = kanzleien.filter(function (o) { return o.id === w; })[0];
     var mandatText = gew ? 'Ich beauftrage ' + gew.name + ' mit der Prüfung und Erstellung der Anlage V für die Wohnung ' + A.akte.objekt_bezeichnung + ' für das Steuerjahr ' + A.akte.vz + ' auf Grundlage meiner Angaben und Unterlagen. ' +
-      (sf ? 'Die Kanzlei macht mir zuerst ein Angebot. Ein Auftrag kommt erst zustande, wenn ich das Angebot annehme.' : 'Vergütung: Festpreis ' + eur2(preis(gew)) + ' einschließlich 19 % Umsatzsteuer, abweichend von der gesetzlichen Vergütung nach der Steuerberatervergütungsverordnung (Vergütungsvereinbarung in Textform nach § 4 StBVV). Rückfragen der Kanzlei zur Anlage V sind enthalten. Nicht enthalten sind die Einkommensteuererklärung und die Übermittlung an das Finanzamt. Die Rechnung stellt die Kanzlei direkt an mich.') : '';
+      (sf ? 'Die Kanzlei macht mir zuerst ein Angebot. Ein Auftrag kommt erst zustande, wenn ich das Angebot annehme.' : 'Vergütung: Festpreis ' + eur2(preis(gew)) + ' einschließlich 19% Umsatzsteuer, abweichend von der gesetzlichen Vergütung nach der Steuerberatervergütungsverordnung (Vergütungsvereinbarung in Textform nach § 4 StBVV). Rückfragen der Kanzlei zur Anlage V sind enthalten. Nicht enthalten sind die Einkommensteuererklärung und die Übermittlung an das Finanzamt. Die Rechnung stellt die Kanzlei direkt an mich.') : '';
     return '<div class="stack">' + vorschau +
       '<fieldset class="stack-s" style="border:0;padding:0;margin:0"><legend class="h3" style="margin-bottom:8px">Wer soll Ihre Anlage V prüfen?</legend><p class="small muted" style="margin-bottom:8px">Sie wählen frei. Ihr Vertrieb erfährt nicht, wen Sie wählen.</p>' + opts + '</fieldset>' +
       (w ? '<div class="card pad stack">' +
@@ -628,7 +628,7 @@
       mount('<div class="wrap stack"><div class="row" style="align-items:flex-end"><div class="stack-s"><span class="eyebrow">' + esc(org ? org.name : 'Vertrieb') + '</span><h1 class="title">Ihre Käufer</h1></div><span class="spacer"></span><a class="btn gold" href="#/vertrieb/neu">+ Käufer übergeben</a></div>' +
         (rows.length ? (function () {
           var an = rows.filter(function (a) { return a.status !== 'eingeladen'; }).length, fe = rows.filter(function (a) { return a.status === 'erledigt'; }).length;
-          return '<div class="kpis"><div class="card kpi"><strong>' + rows.length + '</strong><span>übergeben</span></div><div class="card kpi"><strong>' + an + '</strong><span>angenommen · ' + Math.round(an / rows.length * 100) + ' %</span></div><div class="card kpi dark"><strong>' + fe + '</strong><span>erledigt</span></div></div>';
+          return '<div class="kpis"><div class="card kpi"><strong>' + rows.length + '</strong><span>übergeben</span></div><div class="card kpi"><strong>' + an + '</strong><span>angenommen · ' + Math.round(an / rows.length * 100) + '%</span></div><div class="card kpi dark"><strong>' + fe + '</strong><span>erledigt</span></div></div>';
         })() : '') +
         (rows.length ? '<div class="card tw"><table><thead><tr><th>Akte</th><th>Käufer</th><th>Wohnung</th><th>Jahr</th><th>Unterlagen</th><th>Status</th></tr></thead><tbody>' +
           rows.map(function (a) { var s = VSTAT[a.status] || [a.status, 'c-grey']; return '<tr><td class="mono small">' + esc(a.nummer) + '</td><td><b>' + esc(a.kaeufer_name) + '</b><br><span class="tiny">' + esc(a.kaeufer_email) + '</span></td><td>' + esc(a.objekt_bezeichnung) + '</td><td class="num">' + a.vz + '</td><td class="num">' + a.dokumente + '</td><td><span class="chip ' + s[1] + '">' + s[0] + '</span></td></tr>'; }).join('') + '</tbody></table></div>' :

@@ -43,7 +43,7 @@
   }
   function fmtDatum(d) { return d ? (String(d.t).padStart(2, '0') + '.' + String(d.m).padStart(2, '0') + '.' + d.j) : ''; }
   function eur(x) { return (Math.round(x * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' €'; }
-  function pct(x) { return (Math.round(x * 10000) / 100).toLocaleString('de-DE') + ' %'; }
+  function pct(x) { return (Math.round(x * 10000) / 100).toLocaleString('de-DE') + '%'; }
   // Monate in einem Jahr ab Beginn (Monat des Beginns zählt voll, wie Excel-Blatt AfA) bis Ende
   function monateImJahr(beginn, jahr, ende) {
     if (!beginn || beginn.j > jahr) return 0;
@@ -123,7 +123,7 @@
     if (e.sonderAfA7b) s.push('Sonderabschreibung § 7b EStG');
     if (e.veraeussertUebergang) s.push('Veräußerung im Jahr');
     var ort = num((i.miete || {}).ortsueblicheMieteMonat), kalt = num((i.miete || {}).kaltMonat);
-    if (ort > 0 && kalt > 0 && kalt < 0.66 * ort) s.push('verbilligte Vermietung unter 66 % der ortsüblichen Miete');
+    if (ort > 0 && kalt > 0 && kalt < 0.66 * ort) s.push('verbilligte Vermietung unter 66% der ortsüblichen Miete');
     return s;
   }
 
@@ -213,7 +213,7 @@
         }
       }
       var satz = methode === 'degressiv' ? 0.05 : (e.afaSatzAbweichend ? num(e.afaSatzAbweichend) : typSatz(fertigJahr));
-      if (!satz) { satz = 0.02; hinweis('P10', 'rot', 'AfA-Satz nicht ermittelbar', 'Jahr der Fertigstellung fehlt. Vorläufig 2 % gerechnet.', '§ 7 Abs. 4 EStG'); }
+      if (!satz) { satz = 0.02; hinweis('P10', 'rot', 'AfA-Satz nicht ermittelbar', 'Jahr der Fertigstellung fehlt. Vorläufig 2% gerechnet.', '§ 7 Abs. 4 EStG'); }
       if (e.afaSatzAbweichend && methode === 'linear') hinweis('P10b', 'gelb', 'Abweichender AfA-Satz', 'Satz ' + pct(satz) + ' wegen kürzerer Nutzungsdauer. Gutachten zur Restnutzungsdauer prüfen.', '§ 7 Abs. 4 Satz 2 EStG');
       var verlauf = afaVerlauf({ bmg: akGeb, satz: satz, methode: methode, beginn: ueb, ende: ende, zugaenge: zugaenge }, vz);
       var jr = verlauf.filter(function (r) { return r.jahr === vz; })[0] || { afa: 0, monate: 0, restwert: akGeb };
@@ -222,11 +222,11 @@
       // oder Abweichung vom Vorjahresbetrag, sonst 1
       var schl = (erstjahr || zugaenge[vz] || e.afaSatzAbweichend || (vj && werbung(vj.afa) !== werbung(jr.afa))) ? 2 : 1;
       afaZeile = zeile('33', 'AfA Gebäude', werbung(jr.afa), 'W',
-        (methode === 'degressiv' ? 'degressiv 5 % vom Restwert' : 'linear ' + pct(satz) + ' von ' + eur(jr.bmg || akGeb)) + ', ' + jr.monate + ' Monate',
+        (methode === 'degressiv' ? 'degressiv 5% vom Restwert' : 'linear ' + pct(satz) + ' von ' + eur(jr.bmg || akGeb)) + ', ' + jr.monate + ' Monate',
         'Kaufvertrag: (Kaufpreis ' + eur(num(e.kaufpreis)) + (num(e.ruecklageImKaufpreis) ? ' − Rücklage ' + eur(num(e.ruecklageImKaufpreis)) : '') + (inventarImKP ? ' − Inventar ' + eur(inventarImKP) : '') + ' + Nebenkosten ' + eur(nk) + ') × Gebäudeanteil ' + pct(anteil),
         { satz: satz, methode: methode, schluessel: schl });
       afaInfo = { bmg: akGeb, satz: satz, methode: methode, monate: jr.monate, restwertEnde: jr.restwert, verlauf: verlauf, akGebaeude: akGeb };
-      if (anteil < 0.30 || anteil > 0.90) hinweis('P09', 'gelb', 'Kaufpreisaufteilung prüfen', 'Gebäudeanteil ' + pct(anteil) + ' liegt außerhalb des Korridors 30 bis 90 %. Mit der Arbeitshilfe des BMF gegenrechnen.', 'BMF-Arbeitshilfe Kaufpreisaufteilung');
+      if (anteil < 0.30 || anteil > 0.90) hinweis('P09', 'gelb', 'Kaufpreisaufteilung prüfen', 'Gebäudeanteil ' + pct(anteil) + ' liegt außerhalb des Korridors 30 bis 90%. Mit der Arbeitshilfe des BMF gegenrechnen.', 'BMF-Arbeitshilfe Kaufpreisaufteilung');
       else hinweis('P09', 'info', 'Kaufpreisaufteilung übernommen', 'Gebäudeanteil ' + pct(anteil) + ' laut ' + (e.quelleAufteilung || 'Kaufvertrag') + '. Eine vertragliche Aufteilung gilt, solange sie die realen Werte nicht grundlegend verfehlt.', '');
       if (erstjahr) hinweis('P06', 'info', 'Kaufjahr zeitanteilig', 'AfA, Miete und Kosten für ' + monate + ' Monate ab Übergang ' + fmtDatum(ueb) + '.', '§ 7 Abs. 1 Satz 4 EStG');
       if (num(e.ruecklageImKaufpreis) > 0) hinweis('P05a', 'info', 'Erhaltungsrücklage im Kaufpreis', eur(num(e.ruecklageImKaufpreis)) + ' mindern die Anschaffungskosten.', '');
@@ -266,7 +266,7 @@
       if (num(dl.disagio) > 0 && (parseDatum(dl.auszahlung) || ueb || {}).j === vz) {
         disagio += num(dl.disagio);
         var q = num(dl.betrag) ? num(dl.disagio) / num(dl.betrag) : 0;
-        if (q > 0.05 || num(dl.zinsbindungJahre) < 5) hinweis('P07', 'gelb', 'Disagio prüfen', 'Disagio ' + pct(q) + '. Sofort abziehbar nur, soweit marktüblich (bis 5 % bei mindestens 5 Jahren Zinsbindung).', 'BMF 20.10.2003, § 11 Abs. 2 EStG');
+        if (q > 0.05 || num(dl.zinsbindungJahre) < 5) hinweis('P07', 'gelb', 'Disagio prüfen', 'Disagio ' + pct(q) + '. Sofort abziehbar nur, soweit marktüblich (bis 5% bei mindestens 5 Jahren Zinsbindung).', 'BMF 20.10.2003, § 11 Abs. 2 EStG');
       }
     });
     if (zinsGeschaetzt) hinweis('P03', 'gelb', 'Zinsbescheinigung fehlt', 'Schuldzinsen aus dem Darlehensvertrag geschätzt. Bescheinigung anfordern oder Schätzung bewusst übernehmen.', '§ 9 Abs. 1 Nr. 1 EStG');
@@ -302,7 +302,7 @@
       vjSum += l.betrag;
     });
     if (summeNetto > 0 && grenze15 > 0) {
-      if (anschaffungsnah) hinweis('P12', 'rot', '15-%-Grenze überschritten', 'Instandsetzung netto ' + eur(summeNetto) + ' in drei Jahren nach Anschaffung übersteigt 15 % der Gebäude-AK (' + eur(grenze15) + '). Als anschaffungsnahe Herstellungskosten in die AfA umgegliedert. Bescheide früherer Jahre prüfen.', '§ 6 Abs. 1 Nr. 1a EStG');
+      if (anschaffungsnah) hinweis('P12', 'rot', '15-%-Grenze überschritten', 'Instandsetzung netto ' + eur(summeNetto) + ' in drei Jahren nach Anschaffung übersteigt 15% der Gebäude-AK (' + eur(grenze15) + '). Als anschaffungsnahe Herstellungskosten in die AfA umgegliedert. Bescheide früherer Jahre prüfen.', '§ 6 Abs. 1 Nr. 1a EStG');
       else if (summeNetto > 0.8 * grenze15) hinweis('P12', 'gelb', '15-%-Grenze fast erreicht', 'Instandsetzung netto ' + eur(summeNetto) + ' von ' + eur(grenze15) + ' möglich bis ' + fmtDatum(fristEnde) + '.', '§ 6 Abs. 1 Nr. 1a EStG');
     }
 
