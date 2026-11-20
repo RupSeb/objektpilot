@@ -220,6 +220,9 @@
     liste: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
     stapel: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>'
   };
+  // Fotos je Schritt (Unsplash-Lizenz, liegen in assets/bilder)
+  var BILD = { fallcheck: 'anmeldung', wohnung: 'kauf', miete: 'miete', finanzierung: 'finanzierung', hausgeld: 'hausgeld', unterlagen: 'unterlagen', person: 'willkommen', auftrag: 'anmeldung', konto: 'unterlagen' };
+  function bildVon(k) { return 'assets/bilder/' + (BILD[k] || 'anmeldung') + '.webp'; }
   function ico(k, cls) { return '<svg class="ico' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + (IC[k] || '') + '</svg>'; }
   var ABS = [
     { k: 'fallcheck', t: 'Passt Ihr Fall?', s: 'Vier kurze Fragen, eine Minute' },
@@ -481,7 +484,7 @@
           '<a class="btn" href="#/akte/' + id + '/' + naechste.k + '">' + (n === 0 ? 'Jetzt starten' : 'Weiter mit: ' + naechste.t) + ' →</a></section>' + luftbildHtml() +
           '<ol class="tasks">' + ABS.map(function (x, i) {
             var fertig = absFertig(x.k), gesperrt = x.k === 'auftrag' && !alleFertig;
-            var inner = '<span class="n" aria-hidden="true">' + ico(fertig ? 'check' : x.k) + '</span><span class="t"><b>' + x.t + '</b><span>' + x.s + '</span></span>' + (fertig ? '<span class="chip c-ok">Erledigt</span>' : gesperrt ? '<span class="chip c-grey">Zuerst Schritte 1 bis 7</span>' : '<span class="chip c-grey">Offen</span>');
+            var inner = '<span class="n bild' + (fertig ? ' fertig' : '') + '" aria-hidden="true" style="background-image:url(\'' + bildVon(x.k) + '\')">' + ico(fertig ? 'check' : x.k) + '</span><span class="t"><b>' + x.t + '</b><span>' + x.s + '</span></span>' + (fertig ? '<span class="chip c-ok">Erledigt</span>' : gesperrt ? '<span class="chip c-grey">Zuerst Schritte 1 bis 7</span>' : '<span class="chip c-grey">Offen</span>');
             return '<li class="rein-r' + (fertig ? ' done' : '') + '" style="--d:' + (0.05 + i * 0.06).toFixed(2) + 's">' + (gesperrt ? '<span class="dis">' + inner + '</span>' : '<a href="#/akte/' + id + '/' + x.k + '">' + inner + '</a>') + '</li>';
           }).join('') + '</ol>' +
           (function () {
@@ -641,7 +644,7 @@
       }[k];
       var weiter = k === 'auftrag' ? '' : '<div class="savebar noprint"><div class="inner"><button class="btn" type="button" data-act="absWeiter" data-k="' + k + '">Speichern und weiter</button><a class="btn ghost" href="#/akte/' + id + '">Zur Übersicht</a><span class="spacer"></span><span class="saved" id="saved" aria-live="polite"></span></div></div>';
       mount('<div class="wrap narrow stack"><a class="link small noprint" href="#/akte/' + id + '">← ' + esc(a.objekt_bezeichnung) + '</a>' +
-        '<div class="stack-s"><span class="eyebrow abs-kopf">' + ico(k) + 'Schritt ' + (i + 1) + ' von 8</span><h1 class="title">' + abs.t + '</h1>' + (intro ? '<p class="lead">' + intro + '</p>' : '') + '</div>' +
+        '<header class="objektkopf schritt"><div class="ok-bild" aria-hidden="true" style="background-image:linear-gradient(180deg,rgba(17,17,17,.12) 0%,rgba(17,17,17,.45) 50%,rgba(17,17,17,.93) 100%),url(\'' + bildVon(k) + '\')"></div><div class="ok-text stack-s"><span class="eyebrow abs-kopf">' + ico(k) + 'Schritt ' + (i + 1) + ' von 8</span><h1 class="title">' + abs.t + '</h1></div></header>' + (intro ? '<p class="lead">' + intro + '</p>' : '') +
         '<div id="errsum"></div><form class="stack" id="fAbs" novalidate onsubmit="return false">' + body + '</form>' + weiter + '</div>', abs.t);
       fokusInit(k);
     } catch (e) { fehler(e); }

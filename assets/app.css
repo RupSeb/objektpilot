@@ -480,3 +480,16 @@ tr.kx-anders td{opacity:.6}
 details.help summary::before{content:"";width:7px;height:7px;border:solid currentColor;border-width:0 2px 2px 0;border-radius:1px;background:none;transform:rotate(-45deg);transition:transform .2s;margin:0 3px 0 1px}
 details.help[open] summary::before{transform:rotate(45deg)}
 .saved.ok::before{content:none}
+
+/* Fotos in der Schrittliste und als Kopfbild der Schritte */
+.tasks .n.bild{position:relative;overflow:hidden;background-color:#222;background-size:cover;background-position:center;color:#fff;width:52px;height:52px;border-radius:15px}
+.tasks .n.bild .ico{position:relative;z-index:1;opacity:0;width:22px;height:22px}
+.tasks .n.bild::after{content:"";position:absolute;inset:0;background:rgba(17,17,17,.15);transition:background .2s}
+.tasks .n.bild.fertig::after{background:rgba(255,210,63,.88)}
+.tasks .n.bild.fertig .ico{opacity:1;color:#111}
+.tasks li:has(a:hover) .n.bild:not(.fertig)::after{background:rgba(17,17,17,0)}
+.objektkopf.schritt{min-height:210px;padding-bottom:26px}
+.objektkopf.schritt .abs-kopf{color:#fff}
+.objektkopf.schritt + .lead{margin-top:2px}
+@media (max-width:640px){.objektkopf.schritt{min-height:160px;padding:18px}.tasks .n.bild{width:46px;height:46px;border-radius:13px}}
+.fokus ~ *, .objektkopf.schritt{scroll-margin-top:80px}
