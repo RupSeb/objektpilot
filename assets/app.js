@@ -302,15 +302,17 @@
     if (p.rolle === 'admin' || S.verwaltung) links.push(['#/admin', 'Verwaltung']);
     n.innerHTML = links.map(function (l) { return '<a href="' + l[0] + '"' + (h === l[0] || (l[0] !== '#/' && h.indexOf(l[0]) === 0 && !(l[0] === '#/vertrieb' && h === '#/vertrieb/neu')) ? ' aria-current="page"' : '') + '>' + l[1] + '</a>'; }).join('') +
       '<span class="who" title="' + esc(p.email) + '">' + esc(p.name || p.email) + '</span><button type="button" data-act="abmelden">Abmelden</button>';
-    var alsKunde = S.verwaltung && p.rolle !== 'kaeufer' && /^#\/(akte|wohnungen)/.test(h);
-    $('#kopfZusatz').textContent = alsKunde ? 'Testansicht als Kunde' : ({ kaeufer: 'Anlage V für Kapitalanleger', vertrieb: 'Für Vertriebe', kanzlei: 'Kanzlei', admin: 'Verwaltung' }[p.rolle] || '');
+    var tr = testRolle();
+    $('#kopfZusatz').textContent = tr ? 'Testansicht als ' + { kaeufer: 'Kunde', vertrieb: 'Vertrieb', kanzlei: 'Kanzlei' }[tr] : ({ kaeufer: 'Anlage V für Kapitalanleger', vertrieb: 'Für Vertriebe', kanzlei: 'Kanzlei', admin: 'Verwaltung' }[p.rolle] || '');
     var la = S.letzteAkte, tabs = {
       kaeufer: la ? [['#/akte/' + la, 'Übersicht', 'wohnung'], ['#/akte/' + la + '/unterlagen', 'Unterlagen', 'unterlagen'], ['#/wohnungen', 'Wohnungen', 'stapel'], ['#/konto', 'Konto', 'person']] : [['#/wohnungen', 'Wohnungen', 'stapel'], ['#/konto', 'Konto', 'person']],
       vertrieb: [['#/vertrieb', 'Käufer', 'liste'], ['#/vertrieb/neu', 'Übergeben', 'plus'], ['#/rechner', 'Rechner', 'finanzierung']].concat(S.verwaltung ? [['#/admin', 'Verwaltung', 'hausgeld']] : [], [['#/konto', 'Konto', 'person']]),
       kanzlei: [['#/kanzlei', 'Fälle', 'liste']].concat(S.verwaltung ? [['#/admin', 'Verwaltung', 'hausgeld']] : [], [['#/konto', 'Konto', 'person']]),
       admin: [['#/admin', 'Verwaltung', 'hausgeld'], ['#/konto', 'Konto', 'person']]
     }[p.rolle] || [];
-    if (alsKunde) tabs = (la ? [['#/akte/' + la, 'Übersicht', 'wohnung'], ['#/akte/' + la + '/unterlagen', 'Unterlagen', 'unterlagen']] : []).concat([['#/wohnungen', 'Wohnungen', 'stapel'], ['#/admin', 'Verwaltung', 'hausgeld']]);
+    if (tr === 'kaeufer') tabs = (la ? [['#/akte/' + la, 'Übersicht', 'wohnung'], ['#/akte/' + la + '/unterlagen', 'Unterlagen', 'unterlagen']] : []).concat([['#/wohnungen', 'Wohnungen', 'stapel'], ['#/admin', 'Verwaltung', 'hausgeld']]);
+    if (tr === 'vertrieb') tabs = [['#/vertrieb', 'Käufer', 'liste'], ['#/vertrieb/neu', 'Übergeben', 'plus'], ['#/rechner', 'Rechner', 'finanzierung'], ['#/admin', 'Verwaltung', 'hausgeld']];
+    if (tr === 'kanzlei') tabs = [['#/kanzlei', 'Fälle', 'liste'], ['#/admin', 'Verwaltung', 'hausgeld']];
     var tb = $('#tabbar'); if (!tb) { tb = document.createElement('nav'); tb.id = 'tabbar'; tb.className = 'tabbar'; tb.setAttribute('aria-label', 'Schnellnavigation'); document.body.appendChild(tb); }
     var aktiv = tabs.map(function (t) { return h === t[0] ? 3 : h.indexOf(t[0] + '/') === 0 ? 2 : 0; }), best = Math.max.apply(null, aktiv.concat([0]));
     tb.innerHTML = tabs.map(function (t, j) { return '<a href="' + t[0] + '"' + (best && aktiv[j] === best ? ' aria-current="page"' : '') + '>' + ico(t[2]) + '<span>' + t[1] + '</span></a>'; }).join('');
@@ -427,8 +429,8 @@
     if (h[0] === 'admin' && S.verwaltung) return viewAdmin();
     if (r === 'kaeufer' || (S.verwaltung && (h[0] === 'akte' || h[0] === 'wohnungen'))) { if (h[0] === 'akte' && h[1]) return h[2] === 'konto' ? viewKontoauszug(h[1]) : h[2] ? viewAbschnitt(h[1], h[2], h[3]) : viewAkte(h[1]); return viewKaeuferStart(); }
     if (h[0] === 'rechner' && (r === 'vertrieb' || S.verwaltung)) return viewVorabrechnung();
-    if (r === 'vertrieb') { if (h[0] === 'vertrieb' && h[1] === 'neu') return viewVertriebNeu(); return viewVertrieb(); }
-    if (r === 'kanzlei') { if (h[0] === 'kanzlei' && h[1]) return viewFall(h[1]); return viewKanzlei(); }
+    if (r === 'vertrieb' || (S.verwaltung && h[0] === 'vertrieb')) { if (h[0] === 'vertrieb' && h[1] === 'neu') return viewVertriebNeu(); return viewVertrieb(); }
+    if (r === 'kanzlei' || (S.verwaltung && h[0] === 'kanzlei')) { if (h[0] === 'kanzlei' && h[1]) return viewFall(h[1]); return viewKanzlei(); }
     if (r === 'admin') return viewAdmin();
   }
 
@@ -544,6 +546,18 @@
     var d = s ? new Date(s) : new Date();
     while (n > 0) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0 && d.getDay() !== 6) n--; }
     return d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+  function meineOrg(typ) {
+    if (S.profil.rolle === typ) return S.orgs.filter(function (o) { return o.id === S.profil.organisation_id; })[0];
+    return S.orgs.filter(function (o) { return o.intern && o.typ === typ; })[0];
+  }
+  function testRolle() {
+    if (!S.verwaltung || !S.profil) return '';
+    var h = location.hash, r = S.profil.rolle;
+    if (/^#\/(akte|wohnungen)/.test(h) && r !== 'kaeufer') return 'kaeufer';
+    if (/^#\/(vertrieb|rechner)/.test(h) && r !== 'vertrieb') return 'vertrieb';
+    if (/^#\/kanzlei/.test(h) && r !== 'kanzlei') return 'kanzlei';
+    return '';
   }
   function kanzleiName(id) { var o = S.orgs.filter(function (x) { return x.id === id; })[0]; return o ? o.name : 'Ihre Kanzlei'; }
   function nachrichtenHtml(msgs, ich) {
@@ -1167,7 +1181,7 @@
   }
   function auftragHtml() {
     var r = rechne(A.daten, A.akte.vz, []), c = A.daten.fallcheck || {}, sf = sonderfall(c);
-    var kanzleien = S.orgs.filter(function (o) { return o.typ === 'kanzlei' && o.aktiv; });
+    var kanzleien = S.orgs.filter(function (o) { return o.typ === 'kanzlei' && o.aktiv && (!o.intern || S.verwaltung); });
     var uebJahr = parseInt(String(get(A.daten, 'eingabe.erwerb.uebergang') || '').slice(0, 4), 10);
     var kaufjahr = uebJahr === A.akte.vz;
     var preis = function (o) { return kaufjahr ? (o.preis_kaufjahr || 349) : (o.preis_folgejahr || 249); };
@@ -1217,7 +1231,7 @@
     laden();
     try {
       var rows = q(await sb.rpc('vertrieb_akten'));
-      var org = S.orgs.filter(function (o) { return o.id === S.profil.organisation_id; })[0];
+      var org = meineOrg('vertrieb');
       mount('<div class="wrap stack">' + kopfBild('vertrieb', '<span class="eyebrow">' + esc(org ? org.name : 'Vertrieb') + '</span><h1 class="title">Ihre Käufer</h1><div class="row" style="margin-top:6px"><a class="btn gold" href="#/vertrieb/neu">+ Käufer übergeben</a></div>', 'klein') +
         (rows.length ? (function () {
           var an = rows.filter(function (a) { return a.status !== 'eingeladen'; }).length, fe = rows.filter(function (a) { return a.status === 'erledigt'; }).length;
@@ -1266,13 +1280,15 @@
   async function viewKanzlei() {
     laden();
     try {
-      var akten = q(await sb.from('akte').select('id,nummer,kaeufer_name,objekt_bezeichnung,vz,status,updated_at,akte_pruefung(pruefzeit_sek,freigabe_am)').order('updated_at', { ascending: true }));
+      var akten = q(await sb.from('akte').select('id,nummer,kaeufer_name,objekt_bezeichnung,vz,status,updated_at,kanzlei_id,akte_pruefung(pruefzeit_sek,freigabe_am)').order('updated_at', { ascending: true }));
+      var kOrg = meineOrg('kanzlei'), kTest = S.verwaltung ? (S.orgs.filter(function (o) { return o.intern && o.typ === 'kanzlei'; })[0] || {}).id : null;
+      akten = akten.filter(function (a) { return a.kanzlei_id && ((kOrg && a.kanzlei_id === kOrg.id) || a.kanzlei_id === kTest); });
       var gruppen = { pruefen: ['in_pruefung'], rueckfrage: ['rueckfrage'], sonderfall: ['sonderfall'], fertig: ['freigegeben', 'abgeschlossen'] };
       var zahl = function (g) { return akten.filter(function (a) { return gruppen[g].indexOf(a.status) >= 0; }).length; };
       var fertig = akten.filter(function (a) { return gruppen.fertig.indexOf(a.status) >= 0 && a.akte_pruefung && a.akte_pruefung.pruefzeit_sek; });
       var schnitt = fertig.length ? fertig.reduce(function (s, a) { return s + a.akte_pruefung.pruefzeit_sek; }, 0) / fertig.length : 0;
       var liste = akten.filter(function (a) { return gruppen[KTAB].indexOf(a.status) >= 0; });
-      var org = S.orgs.filter(function (o) { return o.id === S.profil.organisation_id; })[0];
+      var org = meineOrg('kanzlei');
       mount('<div class="wrap stack"><div class="stack-s"><span class="eyebrow">' + esc(org ? org.name : 'Kanzlei') + '</span><h1 class="title">Fälle</h1></div>' +
         '<div class="kpis"><div class="card kpi dark"><strong>' + zahl('pruefen') + '</strong><span>warten auf Prüfung</span></div><div class="card kpi"><strong>' + zahl('rueckfrage') + '</strong><span>Rückfrage beim Käufer</span></div><div class="card kpi"><strong>' + zahl('fertig') + '</strong><span>freigegeben</span></div><div class="card kpi"><strong>' + (schnitt ? mmss(schnitt) : '0:00') + '</strong><span>Prüfzeit im Schnitt, Minuten</span></div></div>' +
         '<div class="card pad"><div class="tabs" role="tablist">' + [['pruefen', 'Zu prüfen'], ['rueckfrage', 'Rückfrage'], ['sonderfall', 'Sonderfälle'], ['fertig', 'Freigegeben']].map(function (t) { return '<button role="tab" type="button" data-act="ktab" data-v="' + t[0] + '" aria-selected="' + (KTAB === t[0]) + '">' + t[1] + ' <span class="muted">' + zahl(t[0]) + '</span></button>'; }).join('') + '</div>' +
@@ -1374,9 +1390,8 @@
       var em = String(S.profil.email || ''), at = em.indexOf('@'), alias = function (r) { return at > 0 ? em.slice(0, at).split('+')[0] + '+' + r + em.slice(at) : r; };
       var rollen = [['kaeufer', 'Kapitalanleger', 'Wohnung anlegen, Daten eintragen, Netto-Plus sehen, Kanzlei beauftragen.'], ['vertrieb', 'Vertrieb', 'Käufer übergeben und sehen, wer die Einladung angenommen hat.'], ['kanzlei', 'Kanzlei', 'Fälle prüfen, Rückfragen stellen, Anlage V freigeben.']];
       var probe = '<section class="hero"><span class="eyebrow">Ansichten ausprobieren</span><h2 class="h2" style="color:#fff">So sieht es für Ihre Kunden aus</h2>' +
-        '<p class="small">Die Vorschau zeigt jede Ansicht mit Beispieldaten, gespeichert wird nichts. Mit „Selbst eingeben“ legen Sie mit Ihrem Zugang eine leere Wohnung an und füllen sie wie ein Kunde aus, mit echtem Speichern, Hochladen und Texterkennung.</p>' +
-        '<div class="grid3">' + rollen.map(function (r) { return '<div class="stack-s" style="background:#222;border-radius:16px;padding:16px"><b style="color:var(--y)">' + r[1] + '</b><span class="small">' + r[2] + '</span><div class="row">' + (r[0] === 'kaeufer' ? '<a class="btn sm" href="#/wohnungen">Selbst eingeben</a>' : r[0] === 'kanzlei' && S.profil.rolle === 'kanzlei' ? '<a class="btn sm" href="#/kanzlei">Meine Fälle</a>' : '') + '<a class="btn ' + (r[0] === 'kaeufer' || (r[0] === 'kanzlei' && S.profil.rolle === 'kanzlei') ? 'sec ' : '') + 'sm" href="?demo=' + r[0] + '#/" target="_blank" rel="noopener">Vorschau öffnen</a></div>' + (r[0] === 'kaeufer' || (r[0] === 'kanzlei' && S.profil.rolle === 'kanzlei') ? '' :
-          '<details class="tiny" style="color:#bbb"><summary style="cursor:pointer">Echt testen mit eigener Adresse</summary><p style="margin-top:6px">Privates Fenster öffnen und anmelden mit <code class="mono" style="color:#fff;word-break:break-all">' + esc(alias(r[0])) + '</code>. <button class="link" style="color:var(--y)" type="button" data-act="aliasKopieren" data-v="' + esc(alias(r[0])) + '">Kopieren</button></p></details>') + '</div>'; }).join('') + '</div></section>';
+        '<p class="small">Die Vorschau zeigt jede Ansicht mit Beispieldaten, gespeichert wird nichts. Mit „Selbst eingeben“ arbeiten Sie mit Ihrem eigenen Zugang in der jeweiligen Rolle und speichern echt. Dafür gibt es einen internen Testvertrieb und eine interne Testkanzlei, die Kunden nicht sehen.</p>' +
+        '<div class="grid3">' + rollen.map(function (r) { return '<div class="stack-s" style="background:#222;border-radius:16px;padding:16px"><b style="color:var(--y)">' + r[1] + '</b><span class="small">' + r[2] + '</span><div class="row"><a class="btn sm" href="' + ({ kaeufer: '#/wohnungen', vertrieb: '#/vertrieb', kanzlei: '#/kanzlei' })[r[0]] + '">' + (r[0] === 'kanzlei' ? (S.profil.rolle === 'kanzlei' ? 'Meine Fälle' : 'Selbst prüfen') : 'Selbst eingeben') + '</a><a class="btn sec sm" href="?demo=' + r[0] + '#/" target="_blank" rel="noopener">Vorschau öffnen</a></div></div>'; }).join('') + '</div></section>';
       mount('<div class="wrap stack"><div class="stack-s"><span class="eyebrow">Betrieb</span><h1 class="title">Verwaltung</h1><p class="muted">Hier legen Sie Vertriebe und Kanzleien an und laden Mitarbeiter ein. Steuerdaten sind hier nicht sichtbar.</p></div>' + probe +
         '<div class="kpis"><div class="card kpi"><strong>' + orgs.filter(function (o) { return o.typ === 'vertrieb'; }).length + '</strong><span>Vertriebe</span></div><div class="card kpi"><strong>' + orgs.filter(function (o) { return o.typ === 'kanzlei'; }).length + '</strong><span>Kanzleien</span></div><div class="card kpi"><strong>' + team.length + '</strong><span>Teammitglieder</span></div></div>' +
         '<div class="split"><section class="card pad stack"><h2 class="h3">Organisationen</h2><div class="tw"><table><thead><tr><th>Name</th><th>Typ</th><th>Ort</th></tr></thead><tbody>' + orgs.map(function (o) { return '<tr><td><b>' + esc(o.name) + '</b></td><td>' + esc(o.typ) + '</td><td class="small">' + esc(o.anschrift || '') + '</td></tr>'; }).join('') + '</tbody></table></div>' +
