@@ -540,3 +540,31 @@ details.help[open] summary::before{transform:rotate(45deg)}
 .fokus .grid2.gruppe .inp input,.fokus .grid2.gruppe .inp select{min-height:56px;font-size:17px}
 @media (max-width:640px){.fokus .grid2.gruppe{grid-template-columns:1fr}}
 .grid2.gruppe .field label .muted{display:none}
+
+/* Kopf der Wohnung: Ort unter der Straße, echte Fassade aus Street View */
+.objektkopf .ok-adr{margin:2px 0 4px;color:rgba(255,255,255,.86);font-weight:600;font-size:16px;text-shadow:0 1px 14px rgba(0,0,0,.5)}
+.ok-sv{position:absolute;left:0;right:0;top:0;bottom:76px;z-index:-1;pointer-events:none;opacity:0;transition:opacity 1.2s ease;background:#111}
+.ok-sv::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(17,17,17,0) 30%,rgba(17,17,17,.55) 70%,rgba(17,17,17,.9) 100%);pointer-events:none;z-index:2}
+.objektkopf.mit-fassade{padding-bottom:116px}
+.objektkopf.mit-fassade .ok-sv{opacity:1}
+.objektkopf.mit-fassade .ok-bild{opacity:0;transition:opacity 1.2s ease}
+.objektkopf .chip.c-warn{text-decoration:none}
+@media (max-width:640px){.objektkopf.mit-fassade{padding-bottom:104px}.ok-sv{bottom:64px}}
+
+/* Texterkennung: Werte prüfen und übernehmen */
+.ocr-hg{position:fixed;inset:0;z-index:80;background:rgba(10,10,10,.62);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:16px}
+.ocr-karte{width:min(620px,100%);max-height:min(86vh,900px);overflow:auto;outline:none;box-shadow:0 40px 80px -30px rgba(0,0,0,.8)}
+.ocr-liste{display:flex;flex-direction:column;gap:10px}
+.ocr-z{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:14px;cursor:pointer}
+.ocr-z:has(input:checked){border-color:var(--y);background:var(--y-soft)}
+.ocr-z input{margin-top:4px;width:18px;height:18px;accent-color:var(--y);flex:none}
+.ocr-t{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ocr-k{font-size:13px;color:var(--muted)}
+.ocr-t b{font-size:17px}
+.ocr-t q{display:block;border-left:3px solid var(--line);padding-left:8px;color:var(--muted);font-style:italic;overflow-wrap:anywhere}
+.ocr-z.unsicher{border-style:dashed}
+.warn-t{color:var(--warn,#b45309);font-weight:600}
+.ocr-laden{height:6px;border-radius:6px;background:var(--line);overflow:hidden}
+.ocr-laden i{display:block;height:100%;width:40%;background:var(--y);border-radius:6px;animation:ocrlauf 1.4s ease-in-out infinite}
+@keyframes ocrlauf{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
+button.link{background:none;border:0;padding:0;font:inherit;cursor:pointer}

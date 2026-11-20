@@ -153,7 +153,8 @@
     { k: 'wirtschaftsplan', t: 'Wirtschaftsplan oder Hausgeldabrechnung', req: 1 },
     { k: 'zinsbescheinigung', t: 'Jahreszinsbescheinigung der Bank', req: 0 },
     { k: 'lohnsteuer', t: 'Lohnsteuerbescheinigung oder Dezember-Gehaltsabrechnung', req: 0 },
-    { k: 'rnd_gutachten', t: 'Gutachten zur Restnutzungsdauer', req: 0, nurWenn: function () { return get(A.daten, 'eingabe.erwerb.rndGutachten') === 'ja'; } },
+    { k: 'rnd_gutachten', t: 'Gutachten zur Restnutzungsdauer', req: 0 },
+    { k: 'kontoauszug', t: 'Kontoauszüge', req: 0 },
     { k: 'sonstiges', t: 'Weitere Unterlage', req: 0 }
   ];
   var F = {
@@ -408,6 +409,7 @@
       S.profil = await profilLaden();
       if (S.profil.rolle !== 'kaeufer') { if (!(await mfaPruefen())) { nav(); return; } }
       S.verwaltung = S.profil.rolle === 'admin';
+      S.ocr = false; sb.rpc('darf_texterkennung').then(function (r) { S.ocr = !r.error && r.data === true; }, function () { });
       if (S.profil.rolle === 'kanzlei' || S.profil.rolle === 'vertrieb') { try { var iv = await sb.rpc('ist_verwaltung'); S.verwaltung = !iv.error && iv.data === true; } catch (x) { S.verwaltung = false; } }
       var o = await sb.from('organisation').select('*').order('name'); S.orgs = o.data || [];
       nav(); route();
@@ -499,7 +501,7 @@
       await akteLaden(id); S.letzteAkte = id; nav();
       if (A.akte.status === 'eingeladen') { await sb.rpc('kaeufer_oeffnen', { p_akte: id }); A.akte.status = 'in_erfassung'; }
       var a = A.akte, offen = a.status === 'in_erfassung';
-      var kopf = '<header class="objektkopf"><div class="ok-bild" aria-hidden="true"></div><div class="ok-text stack-s"><span class="eyebrow">' + esc(a.nummer) + ', Steuerjahr ' + a.vz + '</span><h1 class="title">' + esc(get(A.daten, 'eingabe.objekt.adresse') || a.objekt_bezeichnung) + '</h1><div class="row">' + statusChip(a.status) + '</div></div></header>';
+      var kopf = '<header class="objektkopf"><div class="ok-bild" aria-hidden="true"></div><div class="ok-text stack-s"><span class="eyebrow">' + esc(a.nummer) + ', Steuerjahr ' + a.vz + '</span>' + adresseKopf(get(A.daten, 'eingabe.objekt.adresse') || a.objekt_bezeichnung) + '<div class="row">' + statusChip(a.status) + '<span id="okHinweis"></span></div></div></header>';
       if (offen) {
         var n = fortschritt(), naechste = ABS.filter(function (x) { return !absFertig(x.k); })[0] || ABS[7];
         var alleFertig = n >= 7;
@@ -512,7 +514,7 @@
           '<a class="btn" href="#/akte/' + id + '/' + naechste.k + '">' + (n === 0 ? 'Jetzt starten' : 'Weiter mit: ' + naechste.t) + ' →</a></section>' + luftbildHtml() +
           '<ol class="tasks">' + ABS.map(function (x, i) {
             var fertig = absFertig(x.k), gesperrt = x.k === 'auftrag' && !alleFertig;
-            var inner = '<span class="n bild' + (fertig ? ' fertig' : '') + '" aria-hidden="true" style="--bild:url(\'' + bildVon(x.k) + '\')">' + ico(fertig ? 'check' : x.k) + '</span><span class="t"><b>' + x.t + '</b><span>' + x.s + '</span></span>' + (fertig ? '<span class="chip c-ok">Erledigt</span>' : gesperrt ? '<span class="chip c-grey">Zuerst Schritte 1 bis 7</span>' : '<span class="chip c-grey">Offen</span>');
+            var inner = '<span class="n bild' + (fertig ? ' fertig' : '') + '" aria-hidden="true" style="--bild:url(\'' + new URL(bildVon(x.k), location.href).href + '\')">' + ico(fertig ? 'check' : x.k) + '</span><span class="t"><b>' + x.t + '</b><span>' + x.s + '</span></span>' + (fertig ? '<span class="chip c-ok">Erledigt</span>' : gesperrt ? '<span class="chip c-grey">Zuerst Schritte 1 bis 7</span>' : '<span class="chip c-grey">Offen</span>');
             return '<li class="rein-r' + (fertig ? ' done' : '') + '" style="--d:' + (0.05 + i * 0.06).toFixed(2) + 's">' + (gesperrt ? '<span class="dis">' + inner + '</span>' : '<a href="#/akte/' + id + '/' + x.k + '">' + inner + '</a>') + '</li>';
           }).join('') + '</ol>' +
           (function () {
@@ -725,7 +727,73 @@
     return '<div class="field rnd-upload"><label>Gutachten hochladen <span class="muted" style="font-weight:400">(falls vorhanden)</span></label>' +
       '<div class="row"><label class="btn sec sm">' + (da.length ? 'Weitere Datei' : 'Datei auswählen') + '<input type="file" class="sr" data-act="upload" data-typ="rnd_gutachten" accept="application/pdf,image/*"></label>' +
       '<span class="small muted" id="rndDok">' + (da.length ? 'Hochgeladen: ' + da.map(function (d) { return esc(d.dateiname); }).join(', ') : 'Noch keine Datei') + '</span></div>' +
-      '<span class="tiny">Die Kanzlei prüft das Gutachten. Das automatische Auslesen der Restnutzungsdauer kommt mit der Texterkennung.</span></div>';
+      '<span class="tiny">' + (S.ocr ? 'Nach dem Hochladen lesen wir die Restnutzungsdauer aus, Sie bestätigen sie. ' : '') + 'Die Kanzlei prüft das Gutachten.</span></div>';
+  }
+  /* Texterkennung: Werte aus Unterlagen lesen, der Kunde bestätigt jeden Wert */
+  var LESBAR = { kaufvertrag: 'Ihrem Kaufvertrag', kaufpreisaufteilung: 'der Kaufpreisaufteilung', mietvertrag: 'dem Mietvertrag', darlehensvertrag: 'dem Darlehensvertrag', notar_grundschuld: 'der Notarrechnung', wirtschaftsplan: 'dem Wirtschaftsplan', zinsbescheinigung: 'der Zinsbescheinigung', lohnsteuer: 'der Lohnsteuerbescheinigung', rnd_gutachten: 'dem Gutachten' };
+  var OCR = null;
+  function kurzName(n) { n = String(n || ''); return n.length > 28 ? n.slice(0, 18) + '…' + n.slice(-8) : n; }
+  function ocrRahmen(inhalt) {
+    var hg = $('#ocrHg');
+    if (!hg) { hg = document.createElement('div'); hg.id = 'ocrHg'; hg.className = 'ocr-hg'; hg.innerHTML = '<div class="ocr-karte card pad stack" role="dialog" aria-modal="true" aria-labelledby="ocrTitel" tabindex="-1"></div>'; document.body.appendChild(hg); hg.addEventListener('click', function (e) { if (e.target === hg) ocrSchliessen(); }); }
+    var k = hg.querySelector('.ocr-karte'); k.innerHTML = inhalt; k.focus();
+  }
+  function ocrSchliessen() { var hg = $('#ocrHg'); if (hg) hg.remove(); OCR = null; }
+  function ocrWert(f, w) {
+    w = String(w).trim();
+    if (!f || f.t === 'text' || f.t === 'date' || f.t === 'select') return w;
+    var n = parseFloat(w.replace(/\s/g, '').replace(/,(?=\d{1,2}$)/, '.').replace(/[^\d.\-]/g, ''));
+    if (isNaN(n)) return null;
+    if (f.t === 'pct') return Math.round(n * 100) / 10000;
+    if (f.t === 'year') return Math.round(n);
+    return n;
+  }
+  async function auslesen(id, typ, name) {
+    OCR = { id: id, typ: typ, laeuft: true };
+    ocrRahmen('<span class="eyebrow">Texterkennung</span><h2 class="h3" id="ocrTitel">Wir lesen ' + esc(kurzName(name)) + '</h2><p class="small muted">Das dauert meist 10 bis 30 Sekunden. Sie können währenddessen hier warten.</p><div class="ocr-laden" aria-hidden="true"><i></i></div><div class="row"><span class="spacer"></span><button class="btn ghost sm" type="button" data-act="ocrZu">Abbrechen</button></div>');
+    try {
+      var r = await sb.functions.invoke('auslesen', { body: { dokument_id: id } });
+      if (!OCR || OCR.id !== id) return;
+      var d = r.data;
+      if (r.error) { try { d = await r.error.context.json(); } catch (x) { d = null; } }
+      if (!d || d.fehler || r.error) throw new Error((d && d.fehler) || 'Das Auslesen hat nicht geklappt.');
+      OCR.erg = d; OCR.laeuft = false;
+      var zeilen = (d.felder || []).map(function (x, i) {
+        var f = feldDef(x.p) || { p: x.p, l: x.p, t: 'text' }, v = ocrWert(f, x.wert);
+        if (v == null) return '';
+        var alt = get(A.daten, x.p), gleich = alt != null && alt !== '' && JSON.stringify(alt) === JSON.stringify(v);
+        var an = !gleich && (alt == null || alt === '');
+        x._v = v;
+        return '<label class="ocr-z' + (x.sicher ? '' : ' unsicher') + '"><input type="checkbox" data-i="' + i + '"' + (an ? ' checked' : '') + (gleich ? ' disabled' : '') + '><span class="ocr-t"><span class="ocr-k">' + esc(f.l) + '</span><b>' + esc(f.t === 'date' ? dDE(v) : anzeige(f, v) + (f.t === 'eur' ? ' €' : f.t === 'pct' ? '%' : f.suf ? ' ' + f.suf : '')) + '</b>' +
+          (gleich ? '<span class="tiny">Stimmt mit Ihrer Angabe überein</span>' : alt != null && alt !== '' ? '<span class="tiny">Bisher: ' + esc(f.t === 'date' ? dDE(alt) : anzeige(f, alt)) + '</span>' : '') +
+          (x.sicher ? '' : '<span class="tiny warn-t">Bitte genau prüfen, nicht eindeutig lesbar</span>') +
+          '<q class="tiny">' + esc(x.fundstelle) + '</q><span class="tiny muted">Seite ' + (x.seite || 1) + '</span></span></label>';
+      }).join('');
+      var titel = 'Aus ' + (LESBAR[typ] || 'der Unterlage') + ' gelesen';
+      ocrRahmen('<span class="eyebrow">Texterkennung</span><h2 class="h3" id="ocrTitel">' + titel + '</h2>' +
+        (d.hinweis ? '<div class="note info"><span>' + esc(d.hinweis) + '</span></div>' : '') +
+        (zeilen ? '<p class="small">Bitte vergleichen Sie jeden Wert mit dem Dokument. Übernommen wird nur, was Sie anhaken.</p><div class="ocr-liste">' + zeilen + '</div>' : '<p class="small">In diesem Dokument haben wir keine passenden Werte gefunden.</p>') +
+        '<div class="row"><button class="btn ghost sm" type="button" data-act="ocrZu">' + (zeilen ? 'Verwerfen' : 'Schließen') + '</button><span class="spacer"></span>' + (zeilen ? '<button class="btn" type="button" data-act="ocrUebernehmen">Angehakte übernehmen</button>' : '') + '</div>');
+    } catch (e) {
+      if (!OCR || OCR.id !== id) return;
+      ocrRahmen('<span class="eyebrow">Texterkennung</span><h2 class="h3" id="ocrTitel">Das hat nicht geklappt</h2><p class="small">' + esc(e.message || String(e)) + '</p><div class="row"><span class="spacer"></span><button class="btn sm" type="button" data-act="ocrZu">Schließen</button></div>');
+    }
+  }
+  async function ocrUebernehmen() {
+    if (!OCR || !OCR.erg) return;
+    var n = 0;
+    $$('#ocrHg input[type="checkbox"][data-i]').forEach(function (c) {
+      if (!c.checked || c.disabled) return;
+      var x = OCR.erg.felder[+c.dataset.i]; if (!x || x._v == null) return;
+      set(A.daten, x.p, x._v); n++;
+      if (x.p === 'eingabe.erwerb.restnutzungsdauer') set(A.daten, 'eingabe.erwerb.rndGutachten', 'ja');
+    });
+    if (!n) { ocrSchliessen(); return; }
+    try {
+      q(await sb.from('akte_daten').update({ eingabe: A.daten.eingabe }).eq('akte_id', A.akte.id));
+      ocrSchliessen(); toast(n === 1 ? 'Ein Wert übernommen' : n + ' Werte übernommen');
+      if (aktAbs && location.hash.indexOf('/' + aktAbs) > 0) viewAbschnitt(A.akte.id, aktAbs); else viewAkte(A.akte.id);
+    } catch (e) { fehler(e); }
   }
   function fallcheckHtml() {
     var c = A.daten.fallcheck || {};
@@ -755,20 +823,77 @@
     });
     return MAPS;
   }
+  function adresseTeile(adr) {
+    adr = String(adr || '').trim();
+    var we = (adr.match(/(WE|Whg\.?|Wohnung|App\.?|Apartment|Einheit)\s*[\w\/.-]+/i) || [''])[0];
+    var ohne = adr.replace(/[,;]?\s*(WE|Whg\.?|Wohnung|App\.?|Apartment|Einheit)\s*[\w\/.-]+/i, '').trim();
+    var t = ohne.split(','), strasse = t.shift().trim(), rest = t.join(',').replace(/,?\s*(Deutschland|Germany)\s*$/i, '').trim();
+    return { strasse: strasse || adr, rest: rest, we: we };
+  }
+  function adresseKopf(adr) {
+    var a = adresseTeile(adr), unter = [a.rest, a.we].filter(Boolean).join(', ');
+    return '<h1 class="title" id="okTitel">' + esc(a.strasse) + '</h1><p class="ok-adr" id="okAdr"' + (unter ? '' : ' hidden') + '>' + esc(unter) + '</p>';
+  }
+  // Ort aus der Geokodierung in den Kopf übernehmen, fehlende Hausnummer melden
+  function kopfAdresse(geo) {
+    var el = $('#okAdr'); if (!el || !geo) return;
+    var a = adresseTeile(get(A.daten || {}, 'eingabe.objekt.adresse') || (A.akte && A.akte.objekt_bezeichnung));
+    var ort = [geo.plz, geo.ort].filter(Boolean).join(' ');
+    var unter = [ort || a.rest, a.we].filter(Boolean).join(', ');
+    if (unter) { el.textContent = unter; el.hidden = false; }
+    if (geo.str && geo.nr && !/\d/.test(a.strasse)) { var t = $('#okTitel'); if (t) t.textContent = geo.str + ' ' + geo.nr; }
+    var h = $('#okHinweis');
+    if (h && !geo.nr && A.akte && ['eingeladen', 'in_erfassung', 'rueckfrage'].indexOf(A.akte.status) >= 0) h.innerHTML = '<a class="chip c-warn" href="#/akte/' + A.akte.id + '/wohnung">Hausnummer ergänzen</a>';
+  }
+  async function geoHolen(adr) {
+    var geo = geoCache(adr);
+    if (geo) return geo;
+    var g = await mapsLaden();
+    var gl = await g.importLibrary('geocoding');
+    var r = await new gl.Geocoder().geocode({ address: adr, region: 'de' });
+    if (!r.results || !r.results.length) throw new Error('Adresse nicht gefunden');
+    var e0 = r.results[0], loc = e0.geometry.location, k = {};
+    (e0.address_components || []).forEach(function (c) { (c.types || []).forEach(function (t) { if (!k[t]) k[t] = c.long_name; }); });
+    geo = { lat: loc.lat(), lng: loc.lng(), alt: 0, plz: k.postal_code || '', ort: k.locality || k.postal_town || '', str: k.route || '', nr: k.street_number || '', genau: e0.geometry.location_type === 'ROOFTOP' || !!k.street_number };
+    try { var el = await g.importLibrary('elevation'); var er = await new el.ElevationService().getElevationForLocations({ locations: [loc] }); if (er.results && er.results[0]) geo.alt = er.results[0].elevation; } catch (x) { }
+    return geoCache(adr, geo);
+  }
+  function peilung(a, b) {
+    var r = Math.PI / 180, f1 = a.lat * r, f2 = b.lat * r, dl = (b.lng - a.lng) * r;
+    var y = Math.sin(dl) * Math.cos(f2), x = Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl);
+    return (Math.atan2(y, x) / r + 360) % 360;
+  }
+  // Echte Fassade aus Google Street View als Kopfbild, nur mit Hausnummer und nach Einwilligung
+  async function fassadeStarten(geo) {
+    var kopf = $('.objektkopf:not(.schritt):not(.klein)'); if (!kopf || !geo || !geo.nr || kopf.querySelector('.ok-sv')) return;
+    try {
+      var g = await mapsLaden(), sv = await g.importLibrary('streetView');
+      var ziel = { lat: geo.lat, lng: geo.lng };
+      var res = await new sv.StreetViewService().getPanorama({ location: ziel, radius: 60, source: sv.StreetViewSource ? sv.StreetViewSource.OUTDOOR : 'outdoor', preference: sv.StreetViewPreference ? sv.StreetViewPreference.NEAREST : 'nearest' });
+      var d = res && res.data; if (!d || !d.location || !d.location.pano) return;
+      var von = { lat: d.location.latLng.lat(), lng: d.location.latLng.lng() };
+      kopf = $('.objektkopf:not(.schritt):not(.klein)'); if (!kopf || kopf.querySelector('.ok-sv')) return;
+      var box = document.createElement('div'); box.className = 'ok-sv'; box.setAttribute('aria-hidden', 'true');
+      kopf.insertBefore(box, kopf.firstChild);
+      new sv.StreetViewPanorama(box, { pano: d.location.pano, pov: { heading: peilung(von, ziel), pitch: 12 }, zoom: 0.6, disableDefaultUI: true, clickToGo: false, scrollwheel: false, linksControl: false, panControl: false, zoomControl: false, addressControl: false, fullscreenControl: false, motionTracking: false, motionTrackingControl: false, showRoadLabels: false, keyboardShortcuts: false, disableDoubleClickZoom: true });
+      setTimeout(function () { kopf.classList.add('mit-fassade'); }, 900);
+    } catch (e) { console.warn(e); }
+  }
   function luftbildErlaubt() { try { return localStorage.getItem('op_luftbild') === '1'; } catch (e) { return false; } }
   function luftbildSetzen(ja) { try { if (ja) localStorage.setItem('op_luftbild', '1'); else localStorage.removeItem('op_luftbild'); } catch (e) { } }
   function luftbildAdresse() {
     var a = get(A.daten || {}, 'eingabe.objekt.adresse') || (A.akte && A.akte.objekt_bezeichnung) || '';
+    a = String(a).replace(/\s+/g, ' ');
     return String(a).replace(/[,;]?\s*(WE|Whg\.?|Wohnung|App\.?|Apartment|Einheit)\s*[\w\/.-]+.*$/i, '').trim();
   }
   function luftbildHtml() {
     var adr = luftbildAdresse();
     if (!C.googleMapsKey || !adr) return '';
     return '<figure class="luftbild" id="luftbild" data-adresse="' + esc(adr) + '">' + (luftbildErlaubt() ? '<div class="lb-frage"><span>Luftbild wird geladen …</span></div>' :
-      '<div class="lb-frage"><b>Ihre Wohnung von oben</b><span>Für das 3D-Luftbild lädt Ihr Browser Karten von Google und überträgt dabei die Adresse der Wohnung an Google.</span><button class="btn sm" type="button" data-act="luftbild">3D-Luftbild anzeigen</button></div>') + '</figure>';
+      '<div class="lb-frage"><b>Ihre Wohnung von oben</b><span>Für das 3D-Luftbild und das Foto der Fassade lädt Ihr Browser Karten und Bilder von Google und überträgt dabei die Adresse der Wohnung an Google.</span><button class="btn sm" type="button" data-act="luftbild">3D-Luftbild anzeigen</button></div>') + '</figure>';
   }
   function geoCache(adr, wert) {
-    var k = 'op_geo_' + adr.toLowerCase();
+    var k = 'op_geo2_' + adr.toLowerCase();
     try { if (wert) { localStorage.setItem(k, JSON.stringify(wert)); return wert; } return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return wert || null; }
   }
   async function luftbildStarten() {
@@ -776,16 +901,8 @@
     var adr = fig.dataset.adresse;
     try {
       var g = await mapsLaden();
-      var geo = geoCache(adr);
-      if (!geo) {
-        var gl = await g.importLibrary('geocoding');
-        var r = await new gl.Geocoder().geocode({ address: adr, region: 'de' });
-        if (!r.results || !r.results.length) throw new Error('Adresse nicht gefunden');
-        var loc = r.results[0].geometry.location;
-        geo = { lat: loc.lat(), lng: loc.lng(), alt: 0 };
-        try { var el = await g.importLibrary('elevation'); var er = await new el.ElevationService().getElevationForLocations({ locations: [loc] }); if (er.results && er.results[0]) geo.alt = er.results[0].elevation; } catch (x) { }
-        geoCache(adr, geo);
-      }
+      var geo = await geoHolen(adr);
+      kopfAdresse(geo); fassadeStarten(geo);
       var m3 = await g.importLibrary('maps3d');
       if (!$('#luftbild')) return;
       var center = { lat: geo.lat, lng: geo.lng, altitude: geo.alt + 12 };
@@ -1037,8 +1154,10 @@
   function unterlagenHtml() {
     return '<div class="stack"><p class="small muted">PDF oder Foto, bis 20 MB je Datei. Am Handy können Sie direkt die Kamera nutzen.</p><ul class="tasks">' + DOKTYPEN.filter(function (t) { return t.k !== 'sonstiges' && (!t.nurWenn || t.nurWenn() || A.docs.some(function (d) { return d.typ === t.k; })); }).map(function (t) {
       var da = A.docs.filter(function (d) { return d.typ === t.k; });
-      return '<li><div class="dis" style="opacity:1"><span class="n" aria-hidden="true" style="' + (da.length ? 'background:var(--ok);border-color:var(--ok);color:#fff' : '') + '">' + (da.length ? '✓' : '') + '</span><span class="t"><b>' + t.t + (t.req ? '' : ' <span class="muted" style="font-weight:400">(falls vorhanden)</span>') + '</b><span>' + (da.length ? da.map(function (d) { return esc(d.dateiname) + (d.quelle === 'vertrieb' ? ', vom Vertrieb' : ''); }).join(', ') : 'Noch nicht vorhanden') + '</span></span>' +
-        '<label class="btn sec sm">' + (da.length ? 'Weitere' : 'Hochladen') + '<input type="file" class="sr" data-act="upload" data-typ="' + t.k + '" accept="application/pdf,image/*" multiple></label></div></li>';
+      return '<li><div class="dis" style="opacity:1"><span class="n" aria-hidden="true" style="' + (da.length ? 'background:var(--ok);border-color:var(--ok);color:#fff' : '') + '">' + (da.length ? '✓' : '') + '</span><span class="t"><b>' + t.t + (t.req ? '' : ' <span class="muted" style="font-weight:400">(falls vorhanden)</span>') + '</b><span>' + (da.length ? da.map(function (d) { return esc(d.dateiname) + (d.quelle === 'vertrieb' ? ', vom Vertrieb' : ''); }).join(', ') : 'Noch nicht vorhanden') +
+        (t.k === 'kontoauszug' ? '<br><a class="link" href="#/akte/' + A.akte.id + '/konto">Buchungen als CSV oder CAMT automatisch zuordnen</a>' : '') +
+        (S.ocr && LESBAR[t.k] && da.length ? '<br>' + da.map(function (d) { return '<button class="link" type="button" data-act="auslesen" data-id="' + d.id + '">Werte aus ' + esc(kurzName(d.dateiname)) + ' auslesen</button>'; }).join(' ') : '') + '</span></span>' +
+        '<label class="btn sec sm">' + (da.length ? 'Weitere' : 'Hochladen') + '<input type="file" class="sr" data-act="upload" data-typ="' + t.k + '" accept="application/pdf,image/*' + (t.k === 'kontoauszug' ? ',.csv,.xml,text/csv' : '') + '" multiple></label></div></li>';
     }).join('') + '</ul>' +
       '<div class="drop" id="drop"><p class="small"><b>Weitere Unterlagen</b> hierher ziehen oder <label class="link" style="cursor:pointer">auswählen<input type="file" class="sr" data-act="upload" data-typ="sonstiges" accept="application/pdf,image/*" multiple></label></p></div>' +
       '<div id="uplStatus" class="small muted" aria-live="polite"></div>' +
@@ -1279,7 +1398,7 @@
   /* ---------- Hochladen ---------- */
   function dateiname(n) { return n.normalize('NFKD').replace(/[^\w.\-]+/g, '_').slice(-80); }
   async function hochladen(files, typ, quelle, akteId) {
-    var st = $('#uplStatus'); var ok = 0;
+    var st = $('#uplStatus'); var ok = 0; hochladen.neu = [];
     for (var i = 0; i < files.length; i++) {
       var f = files[i];
       if (f.size > 20 * 1024 * 1024) { toast(f.name + ' ist größer als 20 MB.', true); continue; }
@@ -1287,8 +1406,9 @@
       var pfad = akteId + '/' + (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '' + i) + '-' + dateiname(f.name);
       var up = await sb.storage.from('unterlagen').upload(pfad, f, { contentType: f.type || 'application/octet-stream', upsert: false });
       if (up.error) { fehler(up.error); continue; }
-      var ins = await sb.from('dokument').insert({ akte_id: akteId, typ: typ, dateiname: f.name, pfad: pfad, groesse: f.size, quelle: quelle });
+      var ins = await sb.from('dokument').insert({ akte_id: akteId, typ: typ, dateiname: f.name, pfad: pfad, groesse: f.size, quelle: quelle }).select('id').single();
       if (ins.error) { await sb.storage.from('unterlagen').remove([pfad]); fehler(ins.error); continue; }
+      if (ins.data && ins.data.id) hochladen.neu.push({ id: ins.data.id, typ: typ, name: f.name });
       ok++;
     }
     if (st) st.textContent = ok ? ok + (ok === 1 ? ' Datei hochgeladen' : ' Dateien hochgeladen') : '';
@@ -1413,6 +1533,9 @@
         q(await sb.from('dokument').delete().eq('id', b.dataset.id)); await sb.storage.from('unterlagen').remove([b.dataset.pfad]); toast('Gelöscht'); viewAbschnitt(A.akte.id, 'unterlagen'); return;
       }
       if (act === 'pdf') { pdfLaden(); return; }
+      if (act === 'auslesen') { var dk = A.docs.filter(function (d) { return d.id === b.dataset.id; })[0]; if (dk) auslesen(dk.id, dk.typ, dk.dateiname); return; }
+      if (act === 'ocrZu') { ocrSchliessen(); return; }
+      if (act === 'ocrUebernehmen') { ocrUebernehmen(); return; }
       if (act === 'drucken') { window.print(); if (A.akte && A.akte.status === 'freigegeben') sb.rpc('kaeufer_abschliessen', { p_akte: A.akte.id }).then(function () { }); return; }
       if (act === 'ktab') { KTAB = b.dataset.v; viewKanzlei(); return; }
       if (act === 'fallOeffnen') { location.hash = '#/kanzlei/' + b.dataset.id; return; }
@@ -1464,8 +1587,10 @@
         var n = await hochladen(t.files, t.dataset.typ, 'kaeufer', A.akte.id); t.value = '';
         if (n) {
           toast(n === 1 ? 'Datei hochgeladen' : n + ' Dateien hochgeladen');
-          if (aktAbs === 'unterlagen') viewAbschnitt(A.akte.id, 'unterlagen');
+          var neu = (hochladen.neu || []).filter(function (x) { return LESBAR[x.typ] && !/\.(csv|xml|heic)$/i.test(x.name); });
+          if (aktAbs === 'unterlagen') await viewAbschnitt(A.akte.id, 'unterlagen');
           else { var dd = await sb.from('dokument').select('*').eq('akte_id', A.akte.id).order('created_at'); A.docs = dd.data || []; var rd = $('#rndDok'); if (rd) rd.textContent = 'Hochgeladen: ' + A.docs.filter(function (d) { return d.typ === 'rnd_gutachten'; }).map(function (d) { return d.dateiname; }).join(', '); }
+          if (S.ocr && neu.length && ['eingeladen', 'in_erfassung', 'rueckfrage'].indexOf(A.akte.status) >= 0) auslesen(neu[0].id, neu[0].typ, neu[0].name);
         }
       }
       if (t.id === 'u_files') { Array.prototype.forEach.call(t.files, function (f) { VNEU.files.push({ file: f, typ: rateTyp(f.name) }); }); t.value = ''; vListe(); }
@@ -1577,7 +1702,9 @@
       if (!j || !(+j.v > APP_V)) return;
       var tippt = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
       if (tippt || sessionStorageGet('op_neu_v') === String(j.v)) return; // höchstens einmal je Version neu laden
-      sessionStorageSet('op_neu_v', String(j.v)); location.reload();
+      sessionStorageSet('op_neu_v', String(j.v));
+      var q2 = location.search.replace(/([?&])v=\d+&?/, '$1').replace(/[?&]$/, '');
+      location.replace(location.pathname + (q2 ? q2 + '&' : '?') + 'v=' + j.v + location.hash);
     }).catch(function () { });
   }
   setTimeout(versionPruefen, 4000);
