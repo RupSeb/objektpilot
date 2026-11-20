@@ -300,15 +300,19 @@
     if (p.rolle === 'vertrieb') { links.push(['#/vertrieb', 'Käufer']); links.push(['#/vertrieb/neu', 'Übergeben']); links.push(['#/rechner', 'Rechner']); }
     if (p.rolle === 'kanzlei') links.push(['#/kanzlei', 'Fälle']);
     if (p.rolle === 'admin' || S.verwaltung) links.push(['#/admin', 'Verwaltung']);
+    if (S.verwaltung && p.rolle !== 'kaeufer') links.push(['#/wohnungen', 'Als Kunde testen']);
     n.innerHTML = links.map(function (l) { return '<a href="' + l[0] + '"' + (h === l[0] || (l[0] !== '#/' && h.indexOf(l[0]) === 0 && !(l[0] === '#/vertrieb' && h === '#/vertrieb/neu')) ? ' aria-current="page"' : '') + '>' + l[1] + '</a>'; }).join('') +
       '<span class="who" title="' + esc(p.email) + '">' + esc(p.name || p.email) + '</span><button type="button" data-act="abmelden">Abmelden</button>';
-    $('#kopfZusatz').textContent = { kaeufer: 'Anlage V für Kapitalanleger', vertrieb: 'Für Vertriebe', kanzlei: 'Kanzlei', admin: 'Verwaltung' }[p.rolle] || '';
+    var alsKunde = S.verwaltung && p.rolle !== 'kaeufer' && /^#\/(akte|wohnungen)/.test(h);
+    $('#kopfZusatz').textContent = alsKunde ? 'Testansicht als Kunde' : ({ kaeufer: 'Anlage V für Kapitalanleger', vertrieb: 'Für Vertriebe', kanzlei: 'Kanzlei', admin: 'Verwaltung' }[p.rolle] || '');
     var la = S.letzteAkte, tabs = {
       kaeufer: la ? [['#/akte/' + la, 'Übersicht', 'wohnung'], ['#/akte/' + la + '/unterlagen', 'Unterlagen', 'unterlagen'], ['#/wohnungen', 'Wohnungen', 'stapel'], ['#/konto', 'Konto', 'person']] : [['#/wohnungen', 'Wohnungen', 'stapel'], ['#/konto', 'Konto', 'person']],
       vertrieb: [['#/vertrieb', 'Käufer', 'liste'], ['#/vertrieb/neu', 'Übergeben', 'plus'], ['#/rechner', 'Rechner', 'finanzierung']].concat(S.verwaltung ? [['#/admin', 'Verwaltung', 'hausgeld']] : [], [['#/konto', 'Konto', 'person']]),
       kanzlei: [['#/kanzlei', 'Fälle', 'liste']].concat(S.verwaltung ? [['#/admin', 'Verwaltung', 'hausgeld']] : [], [['#/konto', 'Konto', 'person']]),
       admin: [['#/admin', 'Verwaltung', 'hausgeld'], ['#/konto', 'Konto', 'person']]
     }[p.rolle] || [];
+    if (alsKunde) tabs = (la ? [['#/akte/' + la, 'Übersicht', 'wohnung'], ['#/akte/' + la + '/unterlagen', 'Unterlagen', 'unterlagen']] : []).concat([['#/wohnungen', 'Wohnungen', 'stapel'], ['#/admin', 'Verwaltung', 'hausgeld']]);
+    else if (S.verwaltung && p.rolle !== 'kaeufer') tabs.splice(Math.max(0, tabs.length - 1), 0, ['#/wohnungen', 'Als Kunde', 'wohnung']);
     var tb = $('#tabbar'); if (!tb) { tb = document.createElement('nav'); tb.id = 'tabbar'; tb.className = 'tabbar'; tb.setAttribute('aria-label', 'Schnellnavigation'); document.body.appendChild(tb); }
     var aktiv = tabs.map(function (t) { return h === t[0] ? 3 : h.indexOf(t[0] + '/') === 0 ? 2 : 0; }), best = Math.max.apply(null, aktiv.concat([0]));
     tb.innerHTML = tabs.map(function (t, j) { return '<a href="' + t[0] + '"' + (best && aktiv[j] === best ? ' aria-current="page"' : '') + '>' + ico(t[2]) + '<span>' + t[1] + '</span></a>'; }).join('');
@@ -423,7 +427,7 @@
     nav();
     if (h[0] === 'konto') return viewKonto();
     if (h[0] === 'admin' && S.verwaltung) return viewAdmin();
-    if (r === 'kaeufer') { if (h[0] === 'akte' && h[1]) return h[2] === 'konto' ? viewKontoauszug(h[1]) : h[2] ? viewAbschnitt(h[1], h[2], h[3]) : viewAkte(h[1]); return viewKaeuferStart(); }
+    if (r === 'kaeufer' || (S.verwaltung && (h[0] === 'akte' || h[0] === 'wohnungen'))) { if (h[0] === 'akte' && h[1]) return h[2] === 'konto' ? viewKontoauszug(h[1]) : h[2] ? viewAbschnitt(h[1], h[2], h[3]) : viewAkte(h[1]); return viewKaeuferStart(); }
     if (h[0] === 'rechner' && (r === 'vertrieb' || S.verwaltung)) return viewVorabrechnung();
     if (r === 'vertrieb') { if (h[0] === 'vertrieb' && h[1] === 'neu') return viewVertriebNeu(); return viewVertrieb(); }
     if (r === 'kanzlei') { if (h[0] === 'kanzlei' && h[1]) return viewFall(h[1]); return viewKanzlei(); }
@@ -435,7 +439,7 @@
     laden();
     try {
       await sb.rpc('kaeufer_verknuepfen');
-      var akten = q(await sb.from('akte').select('id,nummer,objekt_bezeichnung,vz,status,updated_at').order('created_at', { ascending: false }));
+      var akten = q(await sb.from('akte').select('id,nummer,objekt_bezeichnung,vz,status,updated_at').eq('kaeufer_id', S.session.user.id).order('created_at', { ascending: false }));
       if (akten.length === 1 && !viewKaeuferStart._liste && location.hash !== '#/wohnungen') { location.replace('#/akte/' + akten[0].id); return; }
       var jahr = new Date().getFullYear();
       var neuForm = '<form class="card pad stack" id="fNeuAkte" novalidate><h2 class="h3">' + (akten.length ? 'Weitere Wohnung anlegen' : 'Wohnung anlegen') + '</h2>' +
@@ -1051,7 +1055,7 @@
   }
   function kontoAnzeigeNeu() {
     var box = $('#kontoBox'); if (!box) return;
-    var kanzlei = S.profil.rolle === 'kanzlei';
+    var kanzlei = S.profil.rolle === 'kanzlei' && location.hash.indexOf('#/kanzlei') === 0;
     box.innerHTML = kontoHtml(kanzlei ? (A.akte.status === 'in_pruefung' || A.akte.status === 'rueckfrage') : true, !kanzlei);
   }
   function kontoHtml(edit, upload) {
@@ -1120,7 +1124,7 @@
     try { q(await sb.from('akte_daten').update({ eingabe: A.daten.eingabe }).eq('akte_id', A.akte.id)); var y = window.scrollY; fallRender(); window.scrollTo(0, y); }
     catch (e) { fehler(e); }
   }, 500);
-  function kontoGeaendert() { kontoAnzeigeNeu(); if (S.profil.rolle === 'kanzlei') kontoKanzleiSpeichern(); else speichern(); }
+  function kontoGeaendert() { kontoAnzeigeNeu(); if (S.profil.rolle === 'kanzlei' && location.hash.indexOf('#/kanzlei') === 0) kontoKanzleiSpeichern(); else speichern(); }
 
   /* Folgejahr */
   function folgejahrEingabe(alt, altVz) {
@@ -1375,7 +1379,8 @@
         '<p class="small">Die Vorschau zeigt jede Ansicht mit Beispieldaten, ohne Anmeldung. Sie können alles anklicken und ausfüllen, gespeichert wird nichts. Gut auch zum Zeigen bei Vertrieben und Kanzleien.</p>' +
         '<div class="grid3">' + rollen.map(function (r) { return '<div class="stack-s" style="background:#222;border-radius:16px;padding:16px"><b style="color:var(--y)">' + r[1] + '</b><span class="small">' + r[2] + '</span><a class="btn sm" href="?demo=' + r[0] + '#/" target="_blank" rel="noopener">Vorschau öffnen</a>' +
           '<details class="tiny" style="color:#bbb"><summary style="cursor:pointer">Echt testen mit eigener Adresse</summary><p style="margin-top:6px">Privates Fenster öffnen und anmelden mit <code class="mono" style="color:#fff;word-break:break-all">' + esc(alias(r[0])) + '</code>. <button class="link" style="color:var(--y)" type="button" data-act="aliasKopieren" data-v="' + esc(alias(r[0])) + '">Kopieren</button></p></details></div>'; }).join('') + '</div></section>';
-      mount('<div class="wrap stack"><div class="stack-s"><span class="eyebrow">Betrieb</span><h1 class="title">Verwaltung</h1><p class="muted">Hier legen Sie Vertriebe und Kanzleien an und laden Mitarbeiter ein. Steuerdaten sind hier nicht sichtbar.</p></div>' + probe +
+      var direkt = '<section class="card pad stack"><h2 class="h3">Direkt als Kunde testen</h2><p class="small">Legen Sie mit Ihrem jetzigen Konto eine Testwohnung an und gehen Sie den Weg des Kunden durch, mit echtem Speichern, Hochladen und Texterkennung. Eine zweite Anmeldung oder private Adresse ist nicht nötig. Beauftragen Sie am Ende Ihre eigene Kanzlei, erscheint der Fall dort unter „Fälle“ zur Prüfung.</p><div class="row"><a class="btn" href="#/wohnungen">Als Kunde testen</a></div></section>';
+      mount('<div class="wrap stack"><div class="stack-s"><span class="eyebrow">Betrieb</span><h1 class="title">Verwaltung</h1><p class="muted">Hier legen Sie Vertriebe und Kanzleien an und laden Mitarbeiter ein. Steuerdaten sind hier nicht sichtbar.</p></div>' + direkt + probe +
         '<div class="kpis"><div class="card kpi"><strong>' + orgs.filter(function (o) { return o.typ === 'vertrieb'; }).length + '</strong><span>Vertriebe</span></div><div class="card kpi"><strong>' + orgs.filter(function (o) { return o.typ === 'kanzlei'; }).length + '</strong><span>Kanzleien</span></div><div class="card kpi"><strong>' + team.length + '</strong><span>Teammitglieder</span></div></div>' +
         '<div class="split"><section class="card pad stack"><h2 class="h3">Organisationen</h2><div class="tw"><table><thead><tr><th>Name</th><th>Typ</th><th>Ort</th></tr></thead><tbody>' + orgs.map(function (o) { return '<tr><td><b>' + esc(o.name) + '</b></td><td>' + esc(o.typ) + '</td><td class="small">' + esc(o.anschrift || '') + '</td></tr>'; }).join('') + '</tbody></table></div>' +
         '<form class="stack" id="fOrg"><h3 class="h3">Neue Organisation</h3><div class="grid2"><div class="field"><label for="o_name">Name</label><div class="inp"><input id="o_name" required></div></div><div class="field"><label for="o_typ">Typ</label><div class="inp"><select id="o_typ"><option value="vertrieb">Vertrieb</option><option value="kanzlei">Kanzlei</option><option value="hausverwaltung">Hausverwaltung</option></select></div></div></div><div class="field"><label for="o_ort">Anschrift oder Ort</label><div class="inp"><input id="o_ort"></div></div><button class="btn sec" type="submit">Anlegen</button></form></section>' +
@@ -1488,7 +1493,7 @@
       if (act === 'folgejahr') {
         b.disabled = true;
         var nvz = A.akte.vz + 1, obj0 = A.akte.objekt_bezeichnung;
-        var vorh = (q(await sb.from('akte').select('id,vz,objekt_bezeichnung')) || []).filter(function (x) { return x.vz === nvz && x.objekt_bezeichnung === obj0; })[0];
+        var vorh = (q(await sb.from('akte').select('id,vz,objekt_bezeichnung').eq('kaeufer_id', S.session.user.id)) || []).filter(function (x) { return x.vz === nvz && x.objekt_bezeichnung === obj0; })[0];
         if (vorh) { location.hash = '#/akte/' + vorh.id; return; }
         var nid0 = q(await sb.rpc('kaeufer_akte_anlegen', { p_objekt: obj0, p_vz: nvz }));
         q(await sb.from('akte_daten').update({ eingabe: folgejahrEingabe(A.daten.eingabe, A.akte.vz), stammdaten: A.daten.stammdaten || {}, fallcheck: A.daten.fallcheck || {}, erledigt: { fallcheck: true, wohnung: true, person: true } }).eq('akte_id', nid0));
