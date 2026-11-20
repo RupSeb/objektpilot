@@ -357,3 +357,29 @@ body.mit-tabbar .brand b{display:inline}
 .demo-leiste a[aria-current]{background:#111;color:var(--y)}
 .demo-leiste button{background:none;border:0;font:inherit;font-weight:600;text-decoration:underline;cursor:pointer;color:#111}
 @media (max-width:640px){.demo-leiste .demo-weg{display:none}.demo-leiste .demo-rollen{margin-left:0;width:100%}}
+
+/* Mietverhältnisse und Kontoauszug */
+.grid2.mv > .legend{font-weight:750;font-size:18px;letter-spacing:-.02em}
+.fokus .grid2.mv{grid-template-columns:repeat(2,minmax(0,1fr))}
+.fokus .grid2.mv > .legend{font-size:clamp(22px,4.4vw,28px);letter-spacing:-.03em}
+.fokus .grid2.mv .field label{font-size:16px;font-weight:650;letter-spacing:0}
+.fokus .grid2.mv .inp input{min-height:56px;font-size:18px}
+@media (max-width:640px){.fokus .grid2.mv{grid-template-columns:1fr}}
+select.mini{font-size:13.5px;min-height:36px;border:1.5px solid var(--line-2);border-radius:10px;background:var(--surface);padding:4px 8px;max-width:190px}
+select.mini:focus{border-color:var(--ink);box-shadow:0 0 0 3px rgba(255,210,63,.55);outline:none}
+tr.kx-unklar td{background:var(--y-soft)}
+tr.kx-anders td{opacity:.6}
+@media (max-width:640px){
+  table.kt thead{display:none}
+  table.kt,table.kt tbody{display:block}
+  table.kt tr{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"d b" "z z" "k j";gap:6px 12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  table.kt td{display:block;padding:0!important;border:0!important;background:none!important}
+  table.kt td:nth-child(1){grid-area:d}
+  table.kt td:nth-child(2){grid-area:z}
+  table.kt td:nth-child(3){grid-area:b;font-weight:700}
+  table.kt td:nth-child(4){grid-area:k}
+  table.kt td:nth-child(5){grid-area:j;justify-self:end}
+  table.kt tr.kx-unklar{background:var(--y-soft)}
+  table.kt select.mini{max-width:100%;width:100%}
+  table.kt td:nth-child(5) select.mini{width:auto}
+}

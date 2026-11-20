@@ -101,7 +101,10 @@
       { p: 'eingabe.erwerb.nebenkosten', l: 'Kaufnebenkosten', t: 'eur', req: 1, h: 'Grunderwerbsteuer, Notar und Grundbuch für den Kauf, Makler. Kosten für die Grundschuld gehören zur Finanzierung.' },
       { p: 'eingabe.erwerb.ruecklageImKaufpreis', l: 'Anteil Erhaltungsrücklage im Kaufpreis', t: 'eur', h: 'Steht manchmal im Kaufvertrag. Wenn nicht erwähnt, leer lassen.' },
       { p: 'eingabe.inventar.0.ak', l: 'Einbauküche oder Möbel im Kaufpreis', t: 'eur', h: 'Nur wenn im Kaufvertrag ein eigener Betrag genannt ist.' },
-      { p: 'eingabe.erwerb.afaMethode', l: 'Abschreibung', t: 'select', req: 1, opts: [['linear', 'Linear'], ['degressiv', 'Degressiv 5% (Neubau)']], h: 'Bei Neubauten mit Baubeginn ab Oktober 2023 ist oft die degressive Abschreibung möglich. Die Kanzlei prüft das.' }
+      { p: 'eingabe.erwerb.afaMethode', l: 'Abschreibung', t: 'select', req: 1, opts: [['linear', 'Linear'], ['degressiv', 'Degressiv 5% (Neubau)']], h: 'Bei Neubauten mit Baubeginn ab Oktober 2023 ist oft die degressive Abschreibung möglich. Die Kanzlei prüft das.' },
+      { p: 'eingabe.erwerb.sonderAfA7b', l: 'Sonderabschreibung nach § 7b nutzen', t: 'select', neubau: 1, opts: [['nein', 'Nein'], ['ja', 'Ja, bitte prüfen']], h: 'Für neue Mietwohnungen mit Bauantrag ab 2023, Effizienzhaus 40 mit QNG-Siegel und Kosten des Gebäudes bis 5.200 € je m². Dann zusätzlich 5% im Jahr, vier Jahre lang. Steht oft im Exposé oder im Bauträgervertrag.' },
+      { p: 'eingabe.erwerb.bauantrag', l: 'Datum des Bauantrags', t: 'date', neubau: 1, h: 'Nur für die Sonderabschreibung nötig. Fragen Sie den Bauträger, wenn es nicht im Vertrag steht.' },
+      { p: 'eingabe.erwerb.eh40qng', l: 'Effizienzhaus 40 mit QNG-Siegel', t: 'select', neubau: 1, opts: [['ja', 'Ja'], ['nein', 'Nein'], ['unklar', 'Weiß ich nicht']], h: 'Steht im Energieausweis oder im Zertifikat zum Qualitätssiegel Nachhaltiges Gebäude.' }
     ],
     miete: [
       { p: 'eingabe.miete.kaltMonat', l: 'Kaltmiete pro Monat', t: 'eur', req: 1, h: 'Laut Mietvertrag, ohne Nebenkosten.' },
@@ -310,7 +313,7 @@
     var h = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean), r = S.profil.rolle;
     nav();
     if (h[0] === 'konto') return viewKonto();
-    if (r === 'kaeufer') { if (h[0] === 'akte' && h[1]) return h[2] ? viewAbschnitt(h[1], h[2]) : viewAkte(h[1]); return viewKaeuferStart(); }
+    if (r === 'kaeufer') { if (h[0] === 'akte' && h[1]) return h[2] === 'konto' ? viewKontoauszug(h[1]) : h[2] ? viewAbschnitt(h[1], h[2]) : viewAkte(h[1]); return viewKaeuferStart(); }
     if (r === 'vertrieb') { if (h[0] === 'vertrieb' && h[1] === 'neu') return viewVertriebNeu(); return viewVertrieb(); }
     if (r === 'kanzlei') { if (h[0] === 'kanzlei' && h[1]) return viewFall(h[1]); return viewKanzlei(); }
     if (r === 'admin') return viewAdmin();
@@ -369,6 +372,8 @@
     e.inventar = (e.inventar || []).filter(function (x) { return x && x.ak > 0; }).map(function (x) { return Object.assign({ bezeichnung: 'Einbauküche', imKaufpreis: true, nutzungsdauer: 10 }, x); });
     e.finanzierung = e.finanzierung || {}; e.finanzierung.darlehen = (e.finanzierung.darlehen || []).filter(Boolean);
     e.miete = e.miete || {}; e.hausgeld = e.hausgeld || {};
+    if (e.miete.wechsel !== true) delete e.miete.vertraege;
+    else e.miete.vertraege = (e.miete.vertraege || []).filter(function (v) { return v && v.von; });
     e.kanzlei = { quittiert: quittiert || [] };
     return e;
   }
@@ -400,6 +405,13 @@
             var inner = '<span class="n" aria-hidden="true">' + ico(fertig ? 'check' : x.k) + '</span><span class="t"><b>' + x.t + '</b><span>' + x.s + '</span></span>' + (fertig ? '<span class="chip c-ok">Erledigt</span>' : gesperrt ? '<span class="chip c-grey">Zuerst Schritte 1 bis 7</span>' : '<span class="chip c-grey">Offen</span>');
             return '<li class="' + (fertig ? 'done' : '') + '">' + (gesperrt ? '<span class="dis">' + inner + '</span>' : '<a href="#/akte/' + id + '/' + x.k + '">' + inner + '</a>') + '</li>';
           }).join('') + '</ol>' +
+          (function () {
+            var ko = get(A.daten, 'eingabe.konto'), nk = ko && ko.bewegungen ? ko.bewegungen.filter(function (b) { return !b.dup; }).length : 0;
+            var offenK = nk ? ko.bewegungen.filter(function (b) { return !b.dup && b.kat === 'unklar'; }).length : 0;
+            return '<ul class="tasks"><li><a href="#/akte/' + id + '/konto"><span class="n" aria-hidden="true">' + ico('liste') + '</span><span class="t"><b>Kontoauszug einlesen</b><span>' +
+              (nk ? nk + ' Umsätze eingelesen' + (offenK ? ', ' + offenK + ' noch ungeklärt' : ', alle zugeordnet') : 'Freiwillig. Miete, Hausgeld und Zinsen direkt aus den Umsätzen, statt sie abzutippen.') + '</span></span>' +
+              '<span class="chip ' + (nk ? (offenK ? 'c-warn' : 'c-ok') : 'c-grey') + '">' + (nk ? (offenK ? 'Klären' : 'Eingelesen') : 'Freiwillig') + '</span></a></li></ul>';
+          })() +
           '<div class="note info"><span class="ic" aria-hidden="true">i</span><span><b>Wer sieht was?</b>Ihre Angaben sehen nur Sie und die Kanzlei, die Sie wählen.' + (a.vertrieb_id ? ' Ihr Vertrieb sieht keine Steuerdaten.' : '') + '</span></div></div>', a.objekt_bezeichnung);
         return;
       }
@@ -432,6 +444,8 @@
         (s === 'rueckfrage' ? '<form class="stack" id="fAntwort"><div class="field"><label for="antwort">Ihre Antwort</label><textarea class="ta" id="antwort" rows="3" required></textarea></div><div class="row"><button class="btn" type="submit">Antwort senden</button><a class="btn sec" href="#/akte/' + a.id + '/unterlagen">Unterlage nachreichen</a></div></form>' : '') + '</section>';
     }
     if ((s === 'freigegeben' || s === 'abgeschlossen') && A.pruefung && A.pruefung.ergebnis) html += ergebnisHtml(A.pruefung.ergebnis, true);
+    if (s === 'freigegeben' || s === 'abgeschlossen') html += folgejahrHtml();
+    if (s === 'rueckfrage') html += '<p class="small"><a class="link" href="#/akte/' + a.id + '/konto">Kontoauszug einlesen oder Zuordnung ändern</a></p>';
     return html;
   }
   function anlageVTabelle(r) {
@@ -462,7 +476,7 @@
     var r = rechne(A.daten, A.akte.vz, []);
     return '<div class="note ok"><span class="ic" aria-hidden="true">✓</span><span><b>Ihr Datenpaket ist bereit</b>Geben Sie das PDF und die Unterlagen Ihrem Steuerberater. Die Werte sind vorbereitet, aber von keiner Kanzlei geprüft.</span></div>' +
       (r ? ergebnisHtml(r, false) : '') +
-      '<section class="card pad stack"><h2 class="h3">Ihre Unterlagen</h2>' + dokListe(A.docs, false) + '</section>';
+      '<section class="card pad stack"><h2 class="h3">Ihre Unterlagen</h2>' + dokListe(A.docs, false) + '</section>' + folgejahrHtml();
   }
   function dokListe(docs, loeschen) {
     if (!docs.length) return '<p class="small muted">Noch keine Unterlagen.</p>';
@@ -533,7 +547,8 @@
       if (k === 'fallcheck') body = fallcheckHtml();
       else if (k === 'unterlagen') body = unterlagenHtml();
       else if (k === 'auftrag') body = auftragHtml();
-      else body = '<div class="stack">' + (k === 'wohnung' ? '<div class="grid2">' + F.wohnung.slice(0, 2).map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('') + '</div>' + F.wohnung.slice(2).map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('') :
+      else if (k === 'miete') body = mieteHtml();
+      else body = '<div class="stack">' + (k === 'wohnung' ? '<div class="grid2">' + F.wohnung.slice(0, 2).map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('') + '</div>' + F.wohnung.slice(2).filter(function (f) { return !f.neubau || (A.daten.fallcheck || {}).art === 'neubau' || get(A.daten, 'eingabe.erwerb.sonderAfA7b') === 'ja'; }).map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('') :
         k === 'person' ? '<div class="grid2">' + F.person.slice(0, 2).map(function (f) { return feldHtml(f, A.daten); }).join('') + '</div>' + feldHtml(F.person[2], A.daten) + feldHtml(F.person[3], A.daten) + '<div class="grid2">' + F.person.slice(4, 6).map(function (f) { return feldHtml(f, A.daten); }).join('') + '</div>' + F.person.slice(6).map(function (f) { return feldHtml(f, A.daten); }).join('') :
           F[k].map(function (f) { return feldHtml(f, A.daten, A.daten.vom_vertrieb); }).join('')) + '</div>';
       var intro = {
@@ -563,6 +578,147 @@
         '<div class="note ok"><span class="ic" aria-hidden="true">✓</span><span><b>Standardfall</b>Ihre Anlage V gibt es zum Festpreis. ' + (c.angestellt === 'ja' ? 'Weil Sie angestellt sind, bekommen Sie zusätzlich die Zahlen für den Freibetrag.' : 'Statt eines Freibetrags passt bei Ihnen eine Anpassung der Vorauszahlungen, das klärt die Kanzlei.') + '</span></div>') : '') + '</div>';
   }
   function sonderfall(c) { return c.nutzung && (c.nutzung !== 'dauer' || c.wohnungen === '4+' || c.art === 'denkmal'); }
+
+  /* Miete mit Mieterwechsel oder Leerstand */
+  function mieteHtml() {
+    var D = A.daten, w = get(D, 'eingabe.miete.wechsel');
+    var frage = '<fieldset class="stack-s" style="border:0;padding:0;margin:0"><legend class="legend">War die Wohnung im Steuerjahr durchgehend an denselben Mieter vermietet?</legend><div class="choice">' +
+      '<button type="button" data-act="mw" data-v="nein" aria-pressed="' + (w === false) + '">Ja, durchgehend</button><button type="button" data-act="mw" data-v="ja" aria-pressed="' + (w === true) + '">Nein, Mieterwechsel oder Leerstand</button></div></fieldset>';
+    if (w !== true) return '<div class="stack">' + frage + F.miete.map(function (f) { return feldHtml(f, D, D.vom_vertrieb); }).join('') + '</div>';
+    var vs = get(D, 'eingabe.miete.vertraege') || [], n = Math.max(2, vs.length), bl = '';
+    for (var k = 0; k < n; k++) {
+      bl += '<div class="grid2 mv"><p class="legend" style="grid-column:1/-1;margin:0">' + (k === 0 ? 'Erstes Mietverhältnis im Jahr' : k === 1 ? 'Nächstes Mietverhältnis' : 'Weiteres Mietverhältnis') + '</p>' +
+        [['von', 'Beginn', 'date'], ['bis', 'Ende', 'date'], ['kaltMonat', 'Kaltmiete pro Monat', 'eur'], ['umlagenMonat', 'Nebenkosten-Vorauszahlung pro Monat', 'eur']].map(function (x) {
+          return feldHtml({ p: 'eingabe.miete.vertraege.' + k + '.' + x[0], l: x[1], t: x[2], req: k === 0 && x[0] !== 'bis' ? 1 : 0 }, D, null, 'mv' + k + x[0]);
+        }).join('') + '</div>';
+    }
+    return '<div class="stack">' + frage + bl +
+      (n < 4 ? '<div class="row"><button class="btn sec sm" type="button" data-act="mwPlus">+ Weiteres Mietverhältnis</button><span class="small muted">Zeiten ohne Mietverhältnis zählen als Leerstand. Läuft ein Mietverhältnis noch, lassen Sie das Ende leer.</span></div>' : '') +
+      feldHtml(F.miete[2], D, D.vom_vertrieb) + '</div>';
+  }
+  function mieteNeuZeichnen(ziel) {
+    $('#fAbs').innerHTML = mieteHtml(); $$('.fsegs').forEach(function (x) { x.remove(); });
+    fokusInit('miete', true);
+    if (FK) { FK.i = Math.min(ziel, FK.steps.length - 1); fokusZeigen(true); }
+  }
+
+  /* Kontoauszug */
+  var KFILTER = 'alle';
+  async function viewKontoauszug(id) {
+    laden();
+    try {
+      if (!A.akte || A.akte.id !== id) await akteLaden(id);
+      var a = A.akte; S.letzteAkte = id; nav();
+      if (['in_erfassung', 'eingeladen', 'rueckfrage'].indexOf(a.status) < 0) { location.replace('#/akte/' + id); return; }
+      mount('<div class="wrap stack"><a class="link small noprint" href="#/akte/' + id + '">← ' + esc(a.objekt_bezeichnung) + '</a>' +
+        '<div class="stack-s"><span class="eyebrow abs-kopf">' + ico('liste') + 'Freiwillig</span><h1 class="title">Kontoauszug einlesen</h1>' +
+        '<p class="lead">Laden Sie die Umsätze des Kontos hoch, über das Miete, Hausgeld und Darlehen laufen. Wir ordnen jede Zahlung zu, prüfen die Salden und rechnen daraus die Jahreswerte.</p></div>' +
+        '<div id="kontoBox">' + kontoHtml(true, true) + '</div>' +
+        '<div class="savebar noprint"><div class="inner"><a class="btn" href="#/akte/' + id + '">Fertig</a><span class="spacer"></span><span class="saved" id="saved" aria-live="polite"></span></div></div></div>', 'Kontoauszug');
+    } catch (e) { fehler(e); }
+  }
+  function kontoAnzeigeNeu() {
+    var box = $('#kontoBox'); if (!box) return;
+    var kanzlei = S.profil.rolle === 'kanzlei';
+    box.innerHTML = kontoHtml(kanzlei ? (A.akte.status === 'in_pruefung' || A.akte.status === 'rueckfrage') : true, !kanzlei);
+  }
+  function kontoHtml(edit, upload) {
+    var ko = get(A.daten, 'eingabe.konto'), vz = A.akte.vz, KK = Kern.konto, KAT = KK.KAT;
+    var hoch = upload ? '<div class="drop" id="kdrop"><p class="small"><b>CSV- oder CAMT-Datei</b> hierher ziehen oder <label class="link" style="cursor:pointer">auswählen<input type="file" class="sr" data-act="kontoDatei" accept=".csv,.txt,.xml,.camt,text/csv,text/xml,application/xml" multiple></label></p></div>' +
+      '<details class="help"><summary>So bekommen Sie die Datei</summary><p>Im Onlinebanking unter Umsätze den Zeitraum vom 22.12.' + (vz - 1) + ' bis 31.12.' + vz + ' wählen und als CSV oder CAMT exportieren. Ein PDF-Auszug lässt sich nicht einlesen. Die Datei selbst laden wir nicht hoch, in Ihrer Akte gespeichert werden nur die eingelesenen Umsätze.</p></details>' : '';
+    if (!ko || !(ko.bewegungen || []).length) return '<div class="stack">' + hoch + (upload ? '' : '<p class="small muted">Kein Kontoauszug eingelesen.</p>') + '</div>';
+    var ctx = KK.kontext(kernEingabe(A.daten, vz, [])), R = KK.verdichten(ko, vz, ctx);
+    var abgl = R.dateien.map(function (f, k) {
+      var kl = f.stimmt === true ? 'ok' : f.stimmt === false ? 'bad' : 'warn', ic = f.stimmt === true ? '✓' : '!';
+      var txt = f.stimmt === true ? 'Anfangssaldo ' + eur2(f.anfang) + ' plus ' + f.n + ' Umsätze ergibt genau den Endsaldo ' + eur2(f.ende) + '.'
+        : f.stimmt === false ? 'Anfangssaldo ' + eur2(f.anfang) + ' plus Umsätze ' + eur2(f.summe) + ' ergibt ' + eur2(f.anfang + f.summe) + ', laut Auszug ' + eur2(f.ende) + '. Es fehlen Umsätze oder ein Betrag stimmt nicht.'
+          : (ko.dateien[k].anfang == null && ko.dateien[k].ende == null ? 'Die Datei enthält keine Salden. Tragen Sie Anfangs- und Endsaldo vom Auszug ein' : 'In der Datei fehlt der ' + (ko.dateien[k].anfang == null ? 'Anfangssaldo' : 'Endsaldo') + '. Tragen Sie ihn vom Auszug ein') + ', dann prüfen wir, ob alle Umsätze da sind.';
+      return '<div class="note ' + kl + '"><span class="ic" aria-hidden="true">' + ic + '</span><span><b>' + esc(f.name) + (f.von ? ' · ' + dDE(f.von) + ' bis ' + dDE(f.bis) : '') + '</b>' + txt +
+        (f.stimmt !== true && edit ? '<span class="row" style="margin-top:8px"><span class="inp" style="max-width:180px"><input inputmode="decimal" data-act="saldo" data-f="' + k + '" data-w="anfang" aria-label="Anfangssaldo" placeholder="Anfangssaldo" value="' + (ko.dateien[k].anfang != null ? esc(eur2(ko.dateien[k].anfang).replace(' €', '')) : '') + '"></span><span class="inp" style="max-width:180px"><input inputmode="decimal" data-act="saldo" data-f="' + k + '" data-w="ende" aria-label="Endsaldo" placeholder="Endsaldo" value="' + (ko.dateien[k].ende != null ? esc(eur2(ko.dateien[k].ende).replace(' €', '')) : '') + '"></span></span>' : '') + '</span></div>';
+    }).join('');
+    var su = R.summe;
+    var kpi = '<div class="kpis"><div class="card kpi"><strong class="num">' + eur(su.miete || 0) + '</strong><span>Miete ' + vz + '</span></div><div class="card kpi"><strong class="num">' + eur(-(su.hausgeld || 0)) + '</strong><span>Hausgeld</span></div><div class="card kpi"><strong class="num">' + eur(-(su.zinsen || 0)) + '</strong><span>Zinsen</span></div><div class="card kpi' + (R.unklar.length ? ' dark' : '') + '"><strong>' + R.unklar.length + '</strong><span>ungeklärt</span></div></div>';
+    var opts = function (sel) { return Object.keys(KAT).map(function (k) { return '<option value="' + k + '"' + (k === sel ? ' selected' : '') + '>' + KAT[k].t + '</option>'; }).join(''); };
+    var zeilen = ko.bewegungen.map(function (b, idx) { return { b: b, idx: idx }; }).filter(function (x) { return !x.b.dup; })
+      .sort(function (x, y) { return x.b.datum < y.b.datum ? -1 : x.b.datum > y.b.datum ? 1 : x.idx - y.idx; });
+    var mitJahr = zeilen.map(function (x) { var kat = x.b.kat || 'unklar'; x.kat = kat; x.zj = KK.jahr(x.b, kat); return x; });
+    var imJahr = mitJahr.filter(function (x) { return x.zj.jahr === vz; }), sonst = mitJahr.filter(function (x) { return x.zj.jahr !== vz; });
+    var liste = KFILTER === 'unklar' ? imJahr.filter(function (x) { return x.kat === 'unklar'; }) : imJahr;
+    var zeile = function (x, anders) {
+      var b = x.b, dj = +String(b.datum).slice(0, 4);
+      var zt = x.zj.regel || x.b.zj ? '<span class="chip ' + (x.zj.annahme ? 'c-warn' : 'c-info') + '" title="Zehn-Tage-Regel">zählt für ' + x.zj.jahr + '</span>' : '';
+      var jahrSel = edit && (x.zj.regel || /-(12-(2[2-9]|3[01])|01-(0[1-9]|10))$/.test(b.datum)) ? '<select class="mini" data-act="kzj" data-i="' + x.idx + '" aria-label="Steuerjahr der Zahlung">' + [dj - 1, dj, dj + 1].map(function (y) { return '<option' + (y === x.zj.jahr ? ' selected' : '') + '>' + y + '</option>'; }).join('') + '</select>' : zt;
+      return '<tr class="' + (x.kat === 'unklar' ? 'kx-unklar' : '') + (anders ? ' kx-anders' : '') + '"><td class="small num" style="white-space:nowrap">' + dDE(b.datum) + '</td><td><b class="small">' + esc(b.name || '') + '</b><div class="rw">' + esc(b.text || '') + '</div></td><td class="r num" style="white-space:nowrap">' + eur2(b.betrag) + '</td>' +
+        '<td>' + (edit ? '<select class="mini" data-act="kat" data-i="' + x.idx + '" aria-label="Zuordnung">' + opts(x.kat) + '</select>' : esc(KAT[x.kat] ? KAT[x.kat].t : x.kat)) + '</td><td>' + jahrSel + '</td></tr>';
+    };
+    var tab = '<div class="tabs" role="tablist"><button role="tab" type="button" data-act="kfilter" data-v="alle" aria-selected="' + (KFILTER === 'alle') + '">Alle ' + vz + ' <span class="muted">' + imJahr.length + '</span></button><button role="tab" type="button" data-act="kfilter" data-v="unklar" aria-selected="' + (KFILTER === 'unklar') + '">Ungeklärt <span class="muted">' + R.unklar.length + '</span></button></div>';
+    return '<div class="stack">' + hoch + abgl + kpi +
+      '<label class="check"><input type="checkbox" data-act="kontoUebernehmen"' + (ko.uebernehmen !== false ? ' checked' : '') + (edit ? '' : ' disabled') + '> <span>Werte aus dem Kontoauszug für die Anlage V verwenden. Sie ersetzen dann die Monatswerte aus Mietvertrag und Wirtschaftsplan.</span></label>' +
+      '<section class="card pad stack">' + tab +
+      (liste.length ? '<div class="tw"><table class="kt"><thead><tr><th>Datum</th><th>Zahlung</th><th class="r">Betrag</th><th>Zuordnung</th><th>Jahr</th></tr></thead><tbody>' + liste.map(function (x) { return zeile(x, false); }).join('') + '</tbody></table></div>' : '<p class="small muted">Keine Zahlungen in dieser Ansicht.</p>') +
+      (sonst.length ? '<details class="help"><summary>' + sonst.length + ' Umsätze gehören zu einem anderen Jahr</summary><div class="tw" style="margin-top:8px"><table class="kt"><tbody>' + sonst.map(function (x) { return zeile(x, true); }).join('') + '</tbody></table></div></details>' : '') +
+      (edit ? '<div class="row">' + (R.unklar.length ? '<button class="btn sec sm" type="button" data-act="kontoPrivat">Ungeklärte als privat markieren</button>' : '') + '<span class="spacer"></span>' + (upload ? '<button class="btn ghost sm" type="button" data-act="kontoEntfernen">Kontoauszug entfernen</button>' : '') + '</div>' : '') +
+      '</section></div>';
+  }
+  async function kontoImport(files) {
+    var ko = clone(get(A.daten, 'eingabe.konto') || { dateien: [], bewegungen: [], uebernehmen: true });
+    ko.dateien = ko.dateien || []; ko.bewegungen = ko.bewegungen || [];
+    var neu = 0, probleme = [];
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      if (f.size > 5 * 1024 * 1024) { probleme.push(f.name + ' ist größer als 5 MB'); continue; }
+      if (/\.pdf$/i.test(f.name)) { probleme.push(f.name + ' ist ein PDF. Bitte als CSV oder CAMT exportieren'); continue; }
+      var buf = await f.arrayBuffer(), text;
+      try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch (x) { text = new TextDecoder('windows-1252').decode(buf); }
+      var r;
+      try { r = Kern.konto.einlesen(text, f.name); } catch (x) { probleme.push(f.name + ': ' + x.message); continue; }
+      if (!r.bewegungen.length) { probleme.push(f.name + ': keine Umsätze gefunden'); continue; }
+      var k = ko.dateien.length, vorh = {};
+      ko.bewegungen.forEach(function (b) { if (!b.dup) vorh[b.datum + '|' + b.betrag + '|' + b.text] = 1; });
+      ko.dateien.push({ name: f.name.slice(0, 80), format: r.format, anfang: r.anfang, ende: r.ende, von: r.von, bis: r.bis, n: r.bewegungen.length });
+      r.bewegungen.forEach(function (b) { b.f = k; if (vorh[b.datum + '|' + b.betrag + '|' + b.text]) b.dup = true; else neu++; ko.bewegungen.push(b); });
+    }
+    if (ko.bewegungen.length > 3000) { toast('Das sind zu viele Umsätze. Bitte nur das Konto der Wohnung und ein Jahr einlesen.', true); return; }
+    Kern.konto.zuordnen(ko.bewegungen, Kern.konto.kontext(kernEingabe(A.daten, A.akte.vz, [])));
+    set(A.daten, 'eingabe.konto', ko); speichern();
+    if (probleme.length) toast(probleme.join('. ') + '.', true); else if (neu) toast(neu + ' Umsätze eingelesen und zugeordnet');
+    kontoAnzeigeNeu();
+  }
+  var kontoKanzleiSpeichern = debounce(async function () {
+    try { q(await sb.from('akte_daten').update({ eingabe: A.daten.eingabe }).eq('akte_id', A.akte.id)); var y = window.scrollY; fallRender(); window.scrollTo(0, y); }
+    catch (e) { fehler(e); }
+  }, 500);
+  function kontoGeaendert() { kontoAnzeigeNeu(); if (S.profil.rolle === 'kanzlei') kontoKanzleiSpeichern(); else speichern(); }
+
+  /* Folgejahr */
+  function folgejahrEingabe(alt, altVz) {
+    var e = clone(alt), nvz = altVz + 1;
+    delete e.konto; delete e.kostenDirekt; delete e.sonstige;
+    var m = e.miete || {};
+    ['kaltJahr', 'umlagenJahr', 'nkAbrechnung', 'fruehereJahre', 'monate', 'quelle'].forEach(function (k) { delete m[k]; });
+    if (Array.isArray(m.vertraege)) {
+      m.vertraege = m.vertraege.filter(function (v) { return v && v.von && (!v.bis || +String(v.bis).slice(0, 4) >= nvz); });
+      var last = m.vertraege[m.vertraege.length - 1];
+      if (last) { if (last.kaltMonat != null) m.kaltMonat = last.kaltMonat; if (last.umlagenMonat != null) m.umlagenMonat = last.umlagenMonat; }
+      if (m.vertraege.length <= 1) { delete m.vertraege; delete m.wechsel; }
+    }
+    var f = e.finanzierung || {}; delete f.geldbeschaffungskosten;
+    (f.darlehen || []).forEach(function (d) { if (d) { delete d.zinsenLautBescheinigung; delete d.disagio; delete d.monate; } });
+    var h = e.hausgeld || {};
+    ['gezahltJahr', 'umlagefaehigJahr', 'ruecklageJahr', 'verwaltungJahr', 'monate', 'vorjahresabrechnung', 'ruecklageVerwendetFuerErhaltung'].forEach(function (k) { delete h[k]; });
+    var vj = (e.erhaltungVorjahre || []).filter(function (v) { return v && !v.auto; });
+    (e.erhaltung || []).forEach(function (r) {
+      var j = +String(r.datum || '').slice(0, 4), n = +r.verteilenJahre || 1;
+      if (n > 1 && j && j < nvz && nvz - j < n) vj.push({ jahr: j, betragImJahr: (r.brutto != null ? +r.brutto : +r.netto * 1.19) / n, auto: true });
+    });
+    e.erhaltungVorjahre = vj;
+    return e;
+  }
+  function folgejahrHtml() {
+    var n = A.akte.vz + 1;
+    if (n > new Date().getFullYear() + 1) return '';
+    return '<section class="card pad stack noprint"><h2 class="h3">Steuerjahr ' + n + '</h2><p class="small">Wohnung, Kauf und Ihre Angaben übernehmen wir. Sie ergänzen nur Miete, Zinsen und Hausgeld des neuen Jahres. Die Abschreibung läuft automatisch weiter.</p><div class="row"><button class="btn sec" type="button" data-act="folgejahr">Steuerjahr ' + n + ' anlegen</button></div></section>';
+  }
   function unterlagenHtml() {
     return '<div class="stack"><p class="small muted">PDF oder Foto, bis 20 MB je Datei. Am Handy können Sie direkt die Kamera nutzen.</p><ul class="tasks">' + DOKTYPEN.filter(function (t) { return t.k !== 'sonstiges'; }).map(function (t) {
       var da = A.docs.filter(function (d) { return d.typ === t.k; });
@@ -640,7 +796,7 @@
   function viewVertriebNeu() {
     VNEU = { eingabe: { erwerb: { afaMethode: 'linear' } }, files: [] };
     var jahr = new Date().getFullYear();
-    var kauf = F.wohnung.filter(function (f) { return ['eingabe.objekt.adresse', 'eingabe.erwerb.afaMethode'].indexOf(f.p) < 0; });
+    var kauf = F.wohnung.filter(function (f) { return !f.neubau && ['eingabe.objekt.adresse', 'eingabe.erwerb.afaMethode'].indexOf(f.p) < 0; });
     var mk = function (f) { var g = Object.assign({}, f, { req: f.req && /kaufpreis|uebergang|kaufvertrag/.test(f.p) ? 1 : 0, p: f.p }); return feldHtml(g, { eingabe: VNEU.eingabe }, null, 'v' + f.p.replace(/\W/g, '_')); };
     mount('<div class="wrap narrow stack"><a class="link small" href="#/vertrieb">← Ihre Käufer</a><div class="stack-s"><span class="eyebrow">Übergabe</span><h1 class="title">Käufer übergeben</h1><p class="lead">Was Sie hier eintragen, muss Ihr Käufer nicht mehr suchen. Alles außer Name, E-Mail und Wohnung ist freiwillig.</p></div>' +
       '<form class="stack" id="fUeb" novalidate>' +
@@ -712,7 +868,7 @@
         (h.ampel === 'rot' && editierbar ? '<label class="check" style="padding:4px 0 0"><input type="checkbox" data-act="quitt" data-id="' + h.id + '"' + (q_ ? ' checked' : '') + '> <span class="small">Geprüft, Freigabe trotzdem möglich</span></label>' : '') + '</div>';
     }).join('') : '<p class="small">Die Berechnung braucht noch Angaben.</p>';
     var korr = editierbar ? '<details class="card pad"><summary class="h3" style="cursor:pointer">Werte korrigieren</summary><form class="stack" id="fKorr" novalidate onsubmit="return false" style="margin-top:14px"><div class="grid2">' +
-      ['eingabe.erwerb.gebaeudeanteil', 'eingabe.erwerb.afaMethode', 'eingabe.erwerb.kaufpreis', 'eingabe.erwerb.nebenkosten', 'eingabe.erwerb.fertigJahr', 'eingabe.erwerb.baubeginn', 'eingabe.miete.kaltMonat', 'eingabe.miete.umlagenMonat', 'eingabe.finanzierung.darlehen.0.zinsenLautBescheinigung', 'eingabe.finanzierung.geldbeschaffungskosten', 'eingabe.hausgeld.monat', 'eingabe.hausgeld.umlagefaehigMonat', 'eingabe.hausgeld.ruecklageMonat', 'eingabe.erwerb.ruecklageImKaufpreis'].map(function (p) { var f = Object.assign({}, feldDef(p)); delete f.h; return feldHtml(f, A.daten, null, 'k' + p.replace(/\W/g, '_')); }).join('') +
+      ['eingabe.erwerb.gebaeudeanteil', 'eingabe.erwerb.afaMethode', 'eingabe.erwerb.kaufpreis', 'eingabe.erwerb.nebenkosten', 'eingabe.erwerb.fertigJahr', 'eingabe.erwerb.baubeginn', 'eingabe.miete.kaltMonat', 'eingabe.miete.umlagenMonat', 'eingabe.finanzierung.darlehen.0.zinsenLautBescheinigung', 'eingabe.finanzierung.geldbeschaffungskosten', 'eingabe.hausgeld.monat', 'eingabe.hausgeld.umlagefaehigMonat', 'eingabe.hausgeld.ruecklageMonat', 'eingabe.erwerb.ruecklageImKaufpreis', 'eingabe.objekt.wohnflaeche', 'eingabe.erwerb.sonderAfA7b', 'eingabe.erwerb.bauantrag', 'eingabe.erwerb.eh40qng'].map(function (p) { var f = Object.assign({}, feldDef(p)); delete f.h; return feldHtml(f, A.daten, null, 'k' + p.replace(/\W/g, '_')); }).join('') +
       '</div><p class="tiny" id="saved" aria-live="polite">Änderungen werden gespeichert und protokolliert.</p></form></details>' : '';
     var blockiert = res && res.freigabe && !res.freigabe.moeglich;
     mount('<div class="wrap stack"><a class="link small" href="#/kanzlei">← Alle Fälle</a>' +
@@ -721,6 +877,7 @@
       '<section class="card pad stack"><h2 class="h3">Anlage V ' + a.vz + (frei ? ' · freigegeben' : ' · Entwurf') + '</h2><div class="tw"><table><thead><tr><th>Zeile</th><th>Position und Rechenweg</th><th>Quelle</th><th class="r">Betrag</th></tr></thead><tbody>' + zeilen + '</tbody></table></div>' +
       (res && res.freibetrag && res.freibetrag.freibetrag ? '<p class="small">Freibetrag ' + res.freibetrag.jahr + ': <b>' + eur(res.freibetrag.freibetrag) + '</b>' + (res.freibetrag.steuerwirkungMonat ? ', Wirkung rund ' + eur(res.freibetrag.steuerwirkungMonat) + ' im Monat' : '') + '</p>' : '') + '</section>' +
       korr +
+      (get(A.daten, 'eingabe.konto.bewegungen') ? '<section class="card pad stack"><h2 class="h3">Kontoauszug</h2><div id="kontoBox">' + kontoHtml(editierbar, false) + '</div></section>' : '') +
       '<section class="card pad stack"><h2 class="h3">Steuerpflichtige Person</h2><dl class="grid2 small" style="margin:0">' +
       [['Name', [sd.vorname, sd.nachname].filter(Boolean).join(' ')], ['Geburtsdatum', dDE(sd.geburtsdatum)], ['Anschrift', [sd.strasse, [sd.plz, sd.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ')], ['Steuer-ID', sd.steuerId], ['Finanzamt', sd.finanzamt], ['Steuernummer', sd.steuernummer]].map(function (x) { return '<div><dt class="muted">' + x[0] + '</dt><dd style="margin:0"' + (x[0] === 'Steuer-ID' ? ' class="mono"' : '') + '>' + esc(x[1] || 'nicht angegeben') + '</dd></div>'; }).join('') + '</dl>' +
       (A.mandat ? '<p class="tiny">Mandat vom ' + dDE(A.mandat.vereinbart_am) + ', Festpreis ' + eur2(A.mandat.verguetung_brutto) + ' brutto</p>' : '') + '</section>' +
@@ -747,7 +904,7 @@
   function stopTimer() { var p = null; if (S.timer) { clearInterval(S.timer); S.timer = null; if (S._timerRest) p = S._timerRest(); S._timerRest = null; } return Promise.resolve(p); }
   var korrSpeichern = debounce(async function () {
     var el = $('#saved'); if (el) el.textContent = 'Speichert …';
-    try { q(await sb.from('akte_daten').update({ eingabe: A.daten.eingabe }).eq('akte_id', A.akte.id)); fallRender(); var e2 = $('#saved'); if (e2) e2.textContent = 'Gespeichert und neu gerechnet'; var d = $('details.card'); if (d) d.open = true; }
+    try { q(await sb.from('akte_daten').update({ eingabe: A.daten.eingabe }).eq('akte_id', A.akte.id)); var y = window.scrollY; fallRender(); window.scrollTo(0, y); var e2 = $('#saved'); if (e2) e2.textContent = 'Gespeichert und neu gerechnet'; var d = $('details.card'); if (d) d.open = true; }
     catch (e) { fehler(e); }
   }, 700);
 
@@ -824,13 +981,45 @@
         if (FK) { FK.i = vorher; fokusZeigen(false); var nb = $('[data-k="' + b.dataset.k + '"][data-v="' + b.dataset.v + '"]'); if (nb) nb.focus(); setTimeout(function () { if (FK && FK.i === vorher && FK.i < FK.steps.length - 1) { FK.i++; fokusZeigen(true); } }, 280); }
         speichern(); return;
       }
+      if (act === 'mw') {
+        var ja = b.dataset.v === 'ja'; set(A.daten, 'eingabe.miete.wechsel', ja);
+        if (ja && !(get(A.daten, 'eingabe.miete.vertraege') || []).filter(Boolean).length) {
+          var m0 = get(A.daten, 'eingabe.miete') || {}, u0 = String(get(A.daten, 'eingabe.erwerb.uebergang') || '');
+          set(A.daten, 'eingabe.miete.vertraege', [{ von: u0.slice(0, 4) === String(A.akte.vz) ? u0 : A.akte.vz + '-01-01', kaltMonat: m0.kaltMonat, umlagenMonat: m0.umlagenMonat }]);
+        }
+        speichern(); mieteNeuZeichnen(1); return;
+      }
+      if (act === 'mwPlus') { var vs = get(A.daten, 'eingabe.miete.vertraege') || [], nn = Math.max(2, vs.length); set(A.daten, 'eingabe.miete.vertraege.' + nn, {}); speichern(); mieteNeuZeichnen(nn + 1); return; }
+      if (act === 'kfilter') { KFILTER = b.dataset.v; kontoAnzeigeNeu(); return; }
+      if (act === 'kontoPrivat') {
+        var kp = get(A.daten, 'eingabe.konto'), np = 0;
+        kp.bewegungen.forEach(function (x) { if (!x.dup && x.kat === 'unklar') { x.kat = 'privat'; x.manuell = true; np++; } });
+        toast(np + ' Zahlungen als privat markiert'); kontoGeaendert(); return;
+      }
+      if (act === 'kontoEntfernen') {
+        if (b.dataset.sicher !== '1') { b.dataset.sicher = '1'; b.textContent = 'Wirklich entfernen?'; return; }
+        set(A.daten, 'eingabe.konto', null); speichern(); KFILTER = 'alle'; kontoAnzeigeNeu(); toast('Kontoauszug entfernt'); return;
+      }
+      if (act === 'folgejahr') {
+        b.disabled = true;
+        var nvz = A.akte.vz + 1, obj0 = A.akte.objekt_bezeichnung;
+        var vorh = (q(await sb.from('akte').select('id,vz,objekt_bezeichnung')) || []).filter(function (x) { return x.vz === nvz && x.objekt_bezeichnung === obj0; })[0];
+        if (vorh) { location.hash = '#/akte/' + vorh.id; return; }
+        var nid0 = q(await sb.rpc('kaeufer_akte_anlegen', { p_objekt: obj0, p_vz: nvz }));
+        q(await sb.from('akte_daten').update({ eingabe: folgejahrEingabe(A.daten.eingabe, A.akte.vz), stammdaten: A.daten.stammdaten || {}, fallcheck: A.daten.fallcheck || {}, erledigt: { fallcheck: true, wohnung: true, person: true } }).eq('akte_id', nid0));
+        toast('Steuerjahr ' + nvz + ' angelegt. Kauf und Ihre Angaben sind übernommen.'); A.akte = null; location.hash = '#/akte/' + nid0; return;
+      }
       if (act === 'absWeiter') {
         var k = b.dataset.k, fehl = [];
         $$('#fAbs [data-p]').forEach(function (inp) { var r = pruefeFeld(inp, true); if (!r.ok) fehl.push(r.f); });
+        if (k === 'miete' && get(A.daten, 'eingabe.miete.wechsel') === true) {
+          var v0 = (get(A.daten, 'eingabe.miete.vertraege') || []).filter(function (v) { return v && (v.von || v.kaltMonat != null); });
+          if (!v0.length || v0.some(function (v) { return !v.von || v.kaltMonat == null; })) { toast('Bitte für jedes Mietverhältnis Beginn und Kaltmiete eintragen.', true); return; }
+        }
         if (k === 'fallcheck') { var cc = A.daten.fallcheck || {}; if (!(cc.nutzung && cc.wohnungen && cc.art && cc.angestellt)) { toast('Bitte beantworten Sie alle vier Fragen.', true); return; } }
         if (k === 'unterlagen') { var fehlt = DOKTYPEN.filter(function (t) { return t.req && !A.docs.some(function (d) { return d.typ === t.k; }); }); if (fehlt.length && !b.dataset.trotzdem) { b.dataset.trotzdem = '1'; toast('Es fehlen noch: ' + fehlt.map(function (t) { return t.t; }).join(', ') + '. Nochmal tippen, um trotzdem weiterzugehen.', true); return; } }
         if (fehl.length) {
-          $('#errsum').innerHTML = '<div class="note bad" role="alert" tabindex="-1" id="errbox"><span class="ic" aria-hidden="true">!</span><span><b>Bitte prüfen Sie ' + (fehl.length === 1 ? 'ein Feld' : fehl.length + ' Felder') + '</b>' + fehl.map(function (f) { return '<a href="#f_' + f.p.replace(/\W/g, '_') + '" class="link" style="display:block">' + esc(f.l) + '</a>'; }).join('') + '</span></div>';
+          $('#errsum').innerHTML = '<div class="note bad" role="alert" tabindex="-1" id="errbox"><span class="ic" aria-hidden="true">!</span><span><b>Bitte prüfen Sie ' + (fehl.length === 1 ? 'ein Feld' : fehl.length + ' Felder') + '</b>' + fehl.map(function (f) { return '<a href="#f_' + f.p.replace(/\W/g, '_') + '" class="link" style="display:block">' + esc(f.l || 'Betrag oder Datum') + '</a>'; }).join('') + '</span></div>';
           $('#errbox').focus(); return;
         }
         A.daten.erledigt = A.daten.erledigt || {}; A.daten.erledigt[k] = true;
@@ -904,6 +1093,12 @@
       if (t.matches('[data-act="upload"]')) { var n = await hochladen(t.files, t.dataset.typ, 'kaeufer', A.akte.id); t.value = ''; if (n) { toast(n === 1 ? 'Datei hochgeladen' : n + ' Dateien hochgeladen'); viewAbschnitt(A.akte.id, 'unterlagen'); } }
       if (t.id === 'u_files') { Array.prototype.forEach.call(t.files, function (f) { VNEU.files.push({ file: f, typ: rateTyp(f.name) }); }); t.value = ''; vListe(); }
       if (t.matches('[data-act="vTyp"]')) VNEU.files[+t.dataset.i].typ = t.value;
+      if (t.matches('[data-act="kontoDatei"]')) { var fl = Array.prototype.slice.call(t.files); t.value = ''; await kontoImport(fl); }
+      var kx = get(A.daten || {}, 'eingabe.konto');
+      if (kx && t.matches('[data-act="kat"]')) { var bk = kx.bewegungen[+t.dataset.i]; bk.kat = t.value; bk.manuell = true; kontoGeaendert(); }
+      if (kx && t.matches('[data-act="kzj"]')) { kx.bewegungen[+t.dataset.i].zj = +t.value; kontoGeaendert(); }
+      if (kx && t.matches('[data-act="kontoUebernehmen"]')) { kx.uebernehmen = t.checked; kontoGeaendert(); }
+      if (kx && t.matches('[data-act="saldo"]')) { var ns = parseNum(t.value); kx.dateien[+t.dataset.f][t.dataset.w] = ns == null || isNaN(ns) ? null : ns; kontoGeaendert(); }
       if (t.matches('[data-act="quitt"]')) {
         var id = t.dataset.id; K.quittiert = K.quittiert.filter(function (x) { return x !== id; }); if (t.checked) K.quittiert.push(id);
         await sb.rpc('kanzlei_quittieren', { p_akte: A.akte.id, p_quittiert: K.quittiert }); fallRender();
@@ -912,12 +1107,13 @@
   });
   ['dragover', 'dragleave', 'drop'].forEach(function (ev) {
     document.addEventListener(ev, async function (e) {
-      var d = e.target.closest && e.target.closest('#drop'); if (!d) return;
+      var d = e.target.closest && e.target.closest('#drop, #kdrop'); if (!d) return;
       e.preventDefault();
       if (ev === 'dragover') d.classList.add('over');
       if (ev === 'dragleave') d.classList.remove('over');
       if (ev === 'drop') {
         d.classList.remove('over');
+        if (d.id === 'kdrop') { await kontoImport(Array.prototype.slice.call(e.dataTransfer.files)); return; }
         if ($('#fUeb')) { Array.prototype.forEach.call(e.dataTransfer.files, function (f) { VNEU.files.push({ file: f, typ: rateTyp(f.name) }); }); vListe(); return; }
         var n = await hochladen(e.dataTransfer.files, 'sonstiges', 'kaeufer', A.akte.id); if (n) viewAbschnitt(A.akte.id, 'unterlagen');
       }
