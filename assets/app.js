@@ -492,7 +492,7 @@
           '<a class="btn" href="#/akte/' + id + '/' + naechste.k + '">' + (n === 0 ? 'Jetzt starten' : 'Weiter mit: ' + naechste.t) + ' →</a></section>' + luftbildHtml() +
           '<ol class="tasks">' + ABS.map(function (x, i) {
             var fertig = absFertig(x.k), gesperrt = x.k === 'auftrag' && !alleFertig;
-            var inner = '<span class="n bild' + (fertig ? ' fertig' : '') + '" aria-hidden="true" style="background-image:url(\'' + bildVon(x.k) + '\')">' + ico(fertig ? 'check' : x.k) + '</span><span class="t"><b>' + x.t + '</b><span>' + x.s + '</span></span>' + (fertig ? '<span class="chip c-ok">Erledigt</span>' : gesperrt ? '<span class="chip c-grey">Zuerst Schritte 1 bis 7</span>' : '<span class="chip c-grey">Offen</span>');
+            var inner = '<span class="n bild' + (fertig ? ' fertig' : '') + '" aria-hidden="true" style="--bild:url(\'' + bildVon(x.k) + '\')">' + ico(fertig ? 'check' : x.k) + '</span><span class="t"><b>' + x.t + '</b><span>' + x.s + '</span></span>' + (fertig ? '<span class="chip c-ok">Erledigt</span>' : gesperrt ? '<span class="chip c-grey">Zuerst Schritte 1 bis 7</span>' : '<span class="chip c-grey">Offen</span>');
             return '<li class="rein-r' + (fertig ? ' done' : '') + '" style="--d:' + (0.05 + i * 0.06).toFixed(2) + 's">' + (gesperrt ? '<span class="dis">' + inner + '</span>' : '<a href="#/akte/' + id + '/' + x.k + '">' + inner + '</a>') + '</li>';
           }).join('') + '</ol>' +
           (function () {

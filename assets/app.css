@@ -493,3 +493,15 @@ details.help[open] summary::before{transform:rotate(45deg)}
 .objektkopf.schritt + .lead{margin-top:2px}
 @media (max-width:640px){.objektkopf.schritt{min-height:160px;padding:18px}.tasks .n.bild{width:46px;height:46px;border-radius:13px}}
 .fokus ~ *, .objektkopf.schritt{scroll-margin-top:80px}
+
+/* Schrittliste: Piktogramm, beim Drüberfahren blendet das Foto ein */
+.tasks .n.bild{background:var(--y-soft);background-image:none;color:#111;width:44px;height:44px;border-radius:14px}
+.tasks .n.bild::after{content:"";position:absolute;inset:0;background:var(--bild) center/cover no-repeat;opacity:0;transform:scale(1.15);transition:opacity .35s ease,transform .5s cubic-bezier(.2,.8,.2,1)}
+.tasks .n.bild .ico{opacity:1;width:auto;height:auto;transition:opacity .25s}
+.tasks li:has(a:hover) .n.bild::after,.tasks li:has(a:focus-visible) .n.bild::after{opacity:1;transform:scale(1)}
+.tasks li:has(a:hover) .n.bild:not(.fertig) .ico,.tasks li:has(a:focus-visible) .n.bild:not(.fertig) .ico{opacity:0}
+.tasks .n.bild.fertig{background:var(--black);color:var(--y)}
+.tasks .n.bild.fertig::after{background:var(--bild) center/cover no-repeat}
+.tasks li:has(a:hover) .n.bild.fertig .ico{position:relative;z-index:1;color:#111;background:var(--y);border-radius:50%;padding:3px;width:22px;height:22px;box-sizing:border-box}
+@media (prefers-color-scheme: dark){.tasks .n.bild:not(.fertig){color:var(--y)}}
+@media (max-width:640px){.tasks .n.bild{width:44px;height:44px;border-radius:14px}}
