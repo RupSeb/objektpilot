@@ -453,6 +453,7 @@
     if (e.miete.wechsel !== true) delete e.miete.vertraege;
     else e.miete.vertraege = (e.miete.vertraege || []).filter(function (v) { return v && v.von; });
     e.kanzlei = { quittiert: quittiert || [] };
+    if (A.akte && A.daten === daten) e._dokumente = (A.docs || []).map(function (d) { return d.typ; });
     return e;
   }
   function rechne(daten, vz, quittiert) {
@@ -1015,7 +1016,7 @@
       '<div class="split"><div class="stack">' +
       '<section class="card pad stack"><h2 class="h3">Anlage V ' + a.vz + (frei ? ', freigegeben' : ', Entwurf') + '</h2><div class="tw"><table><thead><tr><th>Zeile</th><th>Position und Rechenweg</th><th>Quelle</th><th class="r">Betrag</th></tr></thead><tbody>' + zeilen + '</tbody></table></div>' +
       (res && res.freibetrag && res.freibetrag.freibetrag ? '<p class="small">Freibetrag ' + res.freibetrag.jahr + ': <b>' + eur(res.freibetrag.freibetrag) + '</b>' + (res.freibetrag.steuerwirkungMonat ? ', Wirkung rund ' + eur(res.freibetrag.steuerwirkungMonat) + ' im Monat' : '') + '</p>' : '') + '</section>' +
-      korr +
+      korr + rndPruefHtml(res, editierbar) +
       (get(A.daten, 'eingabe.konto.bewegungen') ? '<section class="card pad stack"><h2 class="h3">Kontoauszug</h2><div id="kontoBox">' + kontoHtml(editierbar, false) + '</div></section>' : '') +
       '<section class="card pad stack"><h2 class="h3">Steuerpflichtige Person</h2><dl class="grid2 small" style="margin:0">' +
       [['Name', [sd.vorname, sd.nachname].filter(Boolean).join(' ')], ['Geburtsdatum', dDE(sd.geburtsdatum)], ['Anschrift', [sd.strasse, [sd.plz, sd.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ')], ['Steuer-ID', sd.steuerId], ['Finanzamt', sd.finanzamt], ['Steuernummer', sd.steuernummer]].map(function (x) { return '<div><dt class="muted">' + x[0] + '</dt><dd style="margin:0"' + (x[0] === 'Steuer-ID' ? ' class="mono"' : '') + '>' + esc(x[1] || 'nicht angegeben') + '</dd></div>'; }).join('') + '</dl>' +
@@ -1028,6 +1029,22 @@
       (a.status === 'in_pruefung' ? '<div class="card pad stack"><button class="btn gold block" type="button" data-act="freigeben"' + (blockiert ? ' disabled' : '') + '>Anlage V freigeben</button>' + (blockiert ? '<p class="tiny">Erst alle roten Hinweise prüfen und abhaken.</p>' : '<p class="tiny">Der Käufer bekommt die Anlage V und die Zahlen für den Freibetrag. Ihre Freigabe wird mit Datum und Rechenstand gespeichert.</p>') + '</div>' : '') +
       (frei && A.pruefung ? '<div class="note ok"><span class="ic" aria-hidden="true">✓</span><span><b>Freigegeben am ' + dDE(A.pruefung.freigabe_am) + '</b>Prüfzeit ' + mmss(A.pruefung.pruefzeit_sek) + ' Minuten. Rechenkern ' + esc(A.pruefung.kern_version || '') + '.</span></div>' : '') +
       '</div></div></div>', a.kaeufer_name);
+  }
+  var RND_PUNKTE = [
+    ['vorliegend', 'Gutachten liegt vollständig vor und betrifft genau dieses Gebäude'],
+    ['gutachter', 'Gutachter ist sachkundig, zum Beispiel öffentlich bestellt, zertifiziert oder vergleichbar qualifiziert'],
+    ['stichtag', 'Stichtag des Gutachtens passt zur Anschaffung'],
+    ['zustand', 'Zustand des Gebäudes ist erfasst, möglichst mit Besichtigung vor Ort'],
+    ['herleitung', 'Restnutzungsdauer ist nachvollziehbar hergeleitet, etwa aus Bauteilen und Modernisierung']
+  ];
+  function rndPruefHtml(res, edit) {
+    if (!res || !res.afa || !res.afa.rnd) return '';
+    var rp = get(A.daten, 'eingabe.erwerb.rndPruefung') || {}, gut = A.docs.filter(function (d) { return d.typ === 'rnd_gutachten'; });
+    return '<section class="card pad stack" aria-labelledby="rndh"><h2 class="h3" id="rndh">Gutachten zur Restnutzungsdauer</h2>' +
+      '<p class="small">Restnutzungsdauer laut Gutachten ' + res.afa.rnd + ' Jahre, daraus ' + nf2.format(Math.round(res.afa.satz * 10000) / 100) + '% AfA im Jahr. ' + (gut.length ? 'Das Gutachten liegt bei den Unterlagen.' : 'Das Gutachten ist noch nicht hochgeladen.') + '</p>' +
+      (gut.length ? '<div class="row">' + gut.map(function (d) { return '<button class="btn ghost sm" type="button" data-act="dokOeffnen" data-pfad="' + esc(d.pfad) + '">' + esc(d.dateiname) + ' öffnen</button>'; }).join('') + '</div>' : '') +
+      '<div class="stack-s">' + RND_PUNKTE.map(function (p) { return '<label class="check"><input type="checkbox" data-act="rndPunkt" data-k="' + p[0] + '"' + (rp[p[0]] ? ' checked' : '') + (edit ? '' : ' disabled') + '> <span>' + esc(p[1]) + '</span></label>'; }).join('') + '</div>' +
+      '<p class="tiny">Erst wenn alle fünf Punkte abgehakt sind, verschwindet der rote Hinweis. Ihre Prüfung wird mit dem Fall gespeichert.</p></section>';
   }
   function startTimer(id) {
     stopTimer(); S.pruefAkte = id; S.pruefStart = Date.now();
@@ -1256,6 +1273,7 @@
       if (t.matches('[data-act="upload"]')) { var n = await hochladen(t.files, t.dataset.typ, 'kaeufer', A.akte.id); t.value = ''; if (n) { toast(n === 1 ? 'Datei hochgeladen' : n + ' Dateien hochgeladen'); viewAbschnitt(A.akte.id, 'unterlagen'); } }
       if (t.id === 'u_files') { Array.prototype.forEach.call(t.files, function (f) { VNEU.files.push({ file: f, typ: rateTyp(f.name) }); }); t.value = ''; vListe(); }
       if (t.matches('[data-act="vTyp"]')) VNEU.files[+t.dataset.i].typ = t.value;
+      if (t.matches('[data-act="rndPunkt"]')) { set(A.daten, 'eingabe.erwerb.rndPruefung.' + t.dataset.k, t.checked ? true : null); kontoKanzleiSpeichern(); }
       if (t.matches('[data-act="kontoDatei"]')) { var fl = Array.prototype.slice.call(t.files); t.value = ''; await kontoImport(fl); }
       var kx = get(A.daten || {}, 'eingabe.konto');
       if (kx && t.matches('[data-act="kat"]')) { var bk = kx.bewegungen[+t.dataset.i]; bk.kat = t.value; bk.manuell = true; kontoGeaendert(); }

@@ -560,7 +560,17 @@
         else hinweis('P10b', 'info', 'Gutachten ohne Vorteil', 'Die Restnutzungsdauer von ' + rnd + ' Jahren ergibt ' + pct(1 / rnd) + ' und damit nicht mehr als der gesetzliche Satz von ' + pct(satzGesetz) + '. Gerechnet wird mit dem gesetzlichen Satz.', '§ 7 Abs. 4 Satz 2 EStG');
       }
       if (!satz) { satz = 0.02; hinweis('P10', 'rot', 'AfA-Satz nicht ermittelbar', 'Jahr der Fertigstellung fehlt. Vorläufig 2% gerechnet.', '§ 7 Abs. 4 EStG'); }
-      if (rndGenutzt) hinweis('P10b', 'gelb', 'Kürzere Nutzungsdauer laut Gutachten', 'Satz ' + pct(satz) + ' aus einer Restnutzungsdauer von ' + rnd + ' Jahren statt ' + pct(satzGesetz || 0.02) + '. Die Kanzlei prüft, ob das Gutachten die kürzere Nutzungsdauer nachvollziehbar belegt. Gutachten bitte hochladen.', '§ 7 Abs. 4 Satz 2 EStG');
+      if (rndGenutzt) {
+        hinweis('P10b', 'gelb', 'Kürzere Nutzungsdauer laut Gutachten', 'Satz ' + pct(satz) + ' aus einer Restnutzungsdauer von ' + rnd + ' Jahren statt ' + pct(satzGesetz || 0.02) + '.', '§ 7 Abs. 4 Satz 2 EStG');
+        // Plausibilität gegen das Modell der ImmoWertV (Gesamtnutzungsdauer Wohngebäude 80 Jahre)
+        var alter = fertigJahr ? (ueb ? ueb.j : vz) - fertigJahr : null, modellRnd = alter != null ? Math.max(0, 80 - alter) : null;
+        if (modellRnd != null && rnd < modellRnd * 0.5) hinweis('P10e', 'gelb', 'Restnutzungsdauer deutlich unter dem Modellwert', 'Das Gebäude ist bei Anschaffung ' + alter + ' Jahre alt. Nach dem Modell mit 80 Jahren Gesamtnutzungsdauer blieben rund ' + modellRnd + ' Jahre, das Gutachten nennt ' + rnd + '. Das kann stimmen, etwa bei Bauschäden oder ohne Modernisierung, die Begründung im Gutachten aber besonders genau prüfen.', 'ImmoWertV, Anlage 1');
+        if (Array.isArray(i._dokumente) && i._dokumente.indexOf('rnd_gutachten') < 0) hinweis('P10f', 'gelb', 'Gutachten nicht hochgeladen', 'Ohne das Gutachten kann die Kanzlei die kürzere Nutzungsdauer nicht prüfen.', '');
+        var rp = e.rndPruefung || {}, punkte = ['vorliegend', 'gutachter', 'stichtag', 'zustand', 'herleitung'];
+        var offenP = punkte.filter(function (k) { return !rp[k]; }).length;
+        if (offenP) hinweis('P10d', 'rot', 'Gutachten zur Restnutzungsdauer prüfen', 'Noch ' + offenP + ' von 5 Prüfpunkten offen: Gutachten vollständig und für dieses Gebäude, Gutachter sachkundig, Stichtag passt zur Anschaffung, Zustand des Gebäudes erfasst, Restnutzungsdauer nachvollziehbar hergeleitet.', '§ 7 Abs. 4 Satz 2 EStG, BFH, Urteil vom 28.07.2021, IX R 25/19');
+        else hinweis('P10d', 'ok', 'Gutachten geprüft', 'Alle fünf Prüfpunkte sind abgehakt.', '§ 7 Abs. 4 Satz 2 EStG');
+      }
       else if (e.afaSatzAbweichend && methode === 'linear') hinweis('P10b', 'gelb', 'Abweichender AfA-Satz', 'Satz ' + pct(satz) + ' wegen kürzerer Nutzungsdauer. Gutachten zur Restnutzungsdauer prüfen.', '§ 7 Abs. 4 Satz 2 EStG');
       if (hat7b(e)) {
         var p7b = pruefe7b(e, i.objekt || {}, akGeb);
@@ -589,7 +599,7 @@
         (methode === 'degressiv' ? 'degressiv 5% vom Restwert' : 'linear ' + pct(satz) + ' von ' + eur(jr.bmg || akGeb)) + ', ' + jr.monate + ' Monate',
         'Kaufvertrag: (Kaufpreis ' + eur(num(e.kaufpreis)) + (num(e.ruecklageImKaufpreis) ? ' − Rücklage ' + eur(num(e.ruecklageImKaufpreis)) : '') + (inventarImKP ? ' − Inventar ' + eur(inventarImKP) : '') + ' + Nebenkosten ' + eur(nk) + ') × Gebäudeanteil ' + pct(anteil),
         { satz: satz, methode: methode, schluessel: schl });
-      afaInfo = { bmg: akGeb, satz: satz, methode: methode, monate: jr.monate, restwertEnde: jr.restwert, verlauf: verlauf, akGebaeude: akGeb };
+      afaInfo = { bmg: akGeb, satz: satz, methode: methode, monate: jr.monate, restwertEnde: jr.restwert, verlauf: verlauf, akGebaeude: akGeb, rnd: rndGenutzt ? rnd : null };
       if (sonder7b) { sonderVZ = num(jr.sonder); afaInfo.sonder7b = { bmg: sonder7b.bmg, jahresbetrag: sonder7b.betrag, imJahr: sonderVZ, jahrNr: vz - sonder7b.start + 1 }; }
       if (anteil < 0.30 || anteil > 0.90) hinweis('P09', 'gelb', 'Kaufpreisaufteilung prüfen', 'Gebäudeanteil ' + pct(anteil) + ' liegt außerhalb des Korridors 30 bis 90%. Mit der Arbeitshilfe des BMF gegenrechnen.', 'BMF-Arbeitshilfe Kaufpreisaufteilung');
       else hinweis('P09', 'info', 'Kaufpreisaufteilung übernommen', 'Gebäudeanteil ' + pct(anteil) + ' laut ' + (e.quelleAufteilung || 'Kaufvertrag') + '. Eine vertragliche Aufteilung gilt, solange sie die realen Werte nicht grundlegend verfehlt.', '');
