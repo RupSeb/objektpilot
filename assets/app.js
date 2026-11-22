@@ -965,7 +965,8 @@
     { p: 'eingabe.personen.einkommen.svGesamt', l: 'Sozialversicherung im Jahr, Arbeitnehmeranteil gesamt', t: 'eur', h: 'Von der Gehaltsabrechnung. Leer lassen, dann rechnen wir mit rund 20% vom Brutto.' },
     { p: 'eingabe.personen.einkommen.kirche', l: 'Kirchensteuer', t: 'select', opts: [['0', 'Nein'], ['0.09', 'Ja, 9%'], ['0.08', 'Ja, 8%']] },
     { p: 'eingabe.personen.einkommen.zusammen', l: 'Veranlagung', t: 'select', opts: [['', 'Einzeln'], ['1', 'Zusammen']] },
-    { p: 'eingabe.personen.einkommen.partner.brutto', l: 'Bruttojahresgehalt Partner', t: 'eur' }
+    { p: 'eingabe.personen.einkommen.partner.brutto', l: 'Bruttojahresgehalt Partner', t: 'eur' },
+    { p: 'eingabe.erwerb.restnutzungsdauer', l: 'Restnutzungsdauer laut Gutachten', t: 'num', suf: 'Jahre', h: 'Nur bei Bestandsgebäuden. Tragen Sie den Wert aus einem Gutachten oder einer Ersteinschätzung ein, dann zeigen wir den Unterschied zur gesetzlichen Abschreibung.' }
   ];
   var VR = null;
   function vrNeu() {
@@ -980,14 +981,23 @@
     if (ek.partner && num(ek.partner.brutto) && ek.partner.svGesamt == null) ek.partner.svGesamt = Math.min(num(ek.partner.brutto), 101400) * 0.2;
     if (!e.kaufvertrag) e.kaufvertrag = e.uebergang;
     ein.vz = ueJ + 1; ein.kanzlei = { quittiert: [] }; ein._ohneFreibetrag = true;
+    var ohneRnd = clone(ein);
     var r = Kern.berechne(ein);
     var dl = (ein.finanzierung.darlehen || [])[0] || {};
     var rate = num(dl.betrag) * (num(dl.zins) + num(dl.tilgung)) / 12;
     var steuer = null;
     if (num(ek.brutto)) { var o = Kern.steuer.ausEinkommen(ek, 0), m = Kern.steuer.ausEinkommen(ek, r.summen.ueberschuss); steuer = { ohne: o, mit: m, ersparnis: r2(o.summe - m.summe) }; }
+    // Wirkung eines Gutachtens zur Restnutzungsdauer: einmal mit, einmal ohne rechnen
+    var rnd = null;
+    if (num(e.restnutzungsdauer) > 0) {
+      delete ohneRnd.erwerb.restnutzungsdauer;
+      var r0 = Kern.berechne(ohneRnd), afaMit = r.betrag('33'), afaOhne = r0.betrag('33');
+      rnd = { jahre: num(e.restnutzungsdauer), afaMit: afaMit, afaOhne: afaOhne, genutzt: !!(r.afa && r.afa.rnd) };
+      if (steuer) { var m0 = Kern.steuer.ausEinkommen(ek, r0.summen.ueberschuss); rnd.mehrMonat = r2((m0.summe - steuer.mit.summe) / 12); }
+    }
     var mieteMonat = num(ein.miete.kaltMonat) + num(ein.miete.umlagenMonat);
     var vorSteuer = mieteMonat - num(ein.hausgeld.monat) - rate;
-    return { r: r, jahr: ueJ + 1, rate: rate, steuer: steuer, vorSteuer: vorSteuer, nachSteuer: steuer ? vorSteuer + steuer.ersparnis / 12 : null };
+    return { r: r, jahr: ueJ + 1, rate: rate, steuer: steuer, vorSteuer: vorSteuer, nachSteuer: steuer ? vorSteuer + steuer.ersparnis / 12 : null, rnd: rnd, alter: e.fertigJahr ? ueJ - num(e.fertigJahr) : null };
   }
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
   function r2(x) { return Math.round(x * 100) / 100; }
@@ -995,7 +1005,11 @@
     var x; try { x = vrRechnen(); } catch (err) { return '<p class="small muted">Für die Rechnung fehlen noch Angaben.</p>'; }
     var r = x.r, s = x.steuer;
     if (!num(get(VR, 'eingabe.erwerb.kaufpreis'))) return '<p class="small muted">Tragen Sie mindestens Kaufpreis, Miete und Finanzierung ein. Das Ergebnis erscheint dann hier.</p>';
-    var wichtig = r.hinweise.filter(function (h) { return (h.ampel === 'gelb' || h.ampel === 'rot') && !/^P03|^K|^P06|^P05|^P15/.test(h.id); });
+    var wichtig = r.hinweise.filter(function (h) { return (h.ampel === 'gelb' || h.ampel === 'rot') && !/^P03|^K|^P06|^P05|^P15|^P10[bdf]/.test(h.id); });
+    var rx = x.rnd, rndHtml = '';
+    if (rx && rx.genutzt) rndHtml = '<div class="note ok"><span><b>Mit Gutachten zur Restnutzungsdauer' + (rx.mehrMonat != null ? ': ' + eur(rx.mehrMonat) + ' mehr im Monat' : '') + '</b>Bei ' + rx.jahre + ' Jahren Restnutzungsdauer steigt die Abschreibung von ' + eur(rx.afaOhne) + ' auf ' + eur(rx.afaMit) + ' im Jahr. Das Gutachten muss die Kanzlei später prüfen und anerkennen.</span></div>';
+    else if (rx) rndHtml = '<div class="note info"><span><b>Gutachten ohne Vorteil</b>Bei ' + rx.jahre + ' Jahren Restnutzungsdauer liegt die Abschreibung nicht über dem gesetzlichen Satz. Gerechnet wird mit dem gesetzlichen Satz.</span></div>';
+    else if (x.alter != null && x.alter >= 25) rndHtml = '<div class="note info"><span><b>Gutachten zur Restnutzungsdauer prüfen</b>Das Gebäude ist beim Kauf ' + x.alter + ' Jahre alt. Ein Gutachten kann eine kürzere Restnutzungsdauer belegen und die Abschreibung deutlich erhöhen. Tragen Sie unten einen Wert ein, dann sehen Sie den Unterschied.</span></div>';
     return '<div class="kpis">' +
       '<div class="card kpi dark"><strong class="num">' + (s ? eur(s.ersparnis / 12) : '?') + '</strong><span>Steuerersparnis im Monat, ' + x.jahr + '</span></div>' +
       '<div class="card kpi"><strong class="num">' + eur(x.vorSteuer) + '</strong><span>Monatlich vor Steuern</span></div>' +
@@ -1004,7 +1018,7 @@
       [['Mieteinnahmen im Jahr', r.summen.einnahmen], ['Werbungskosten im Jahr', -r.summen.werbungskosten], ['davon Abschreibung', -(r.betrag('35') + r.betrag('45'))], ['davon Schuldzinsen', -r.betrag('48')], ['Ergebnis Vermietung', r.summen.ueberschuss]].map(function (z) { return '<tr><td>' + z[0] + '</td><td class="r num">' + eur(z[1]) + '</td></tr>'; }).join('') +
       (s ? '<tr><td>Steuer ohne Wohnung</td><td class="r num">' + eur(s.ohne.summe) + '</td></tr><tr><td>Steuer mit Wohnung</td><td class="r num">' + eur(s.mit.summe) + '</td></tr><tr class="sum"><td>Ersparnis im Jahr</td><td class="r num">' + eur(s.ersparnis) + '</td></tr>' : '') +
       '<tr><td>Darlehensrate im Monat</td><td class="r num">' + eur(x.rate) + '</td></tr></tbody></table></div>' +
-      '<p class="tiny">Erstes volles Jahr ' + x.jahr + '. Einkommensteuer nach Tarif 2026 mit Solidaritätszuschlag' + (num(get(VR, 'eingabe.personen.einkommen.kirche')) ? ' und Kirchensteuer' : '') + '. Ohne weitere Einkünfte, Kinder und Sonderausgaben. Vorabrechnung, keine Steuerberatung.</p></div>' +
+      rndHtml + '<p class="tiny">Erstes volles Jahr ' + x.jahr + '. Einkommensteuer nach Tarif 2026 mit Solidaritätszuschlag' + (num(get(VR, 'eingabe.personen.einkommen.kirche')) ? ' und Kirchensteuer' : '') + '. Ohne weitere Einkünfte, Kinder und Sonderausgaben. Vorabrechnung, keine Steuerberatung.</p></div>' +
       (wichtig.length ? '<div class="stack-s">' + wichtig.map(function (h) { return '<div class="note ' + (h.ampel === 'rot' ? 'bad' : 'warn') + '"><span><b>' + esc(h.titel) + '</b>' + esc(h.text) + '</span></div>'; }).join('') + '</div>' : '');
   }
   function viewVorabrechnung() {
@@ -1015,7 +1029,7 @@
       '<p class="lead">Rechnen Sie mit den echten Zahlen Ihres Kunden statt mit einem pauschalen Steuersatz. Nichts wird gespeichert.</p>' +
       '<div class="split"><form class="stack" id="fVR" novalidate onsubmit="return false">' +
       grp('Kauf', [V[0], V[1], V[6], V[7], V[8], V[9]]) + grp('Gebäudeanteil', [V[2], V[3], V[4], V[5]]) + grp('Neubau, nur für degressive AfA', [V[10], V[11]]) +
-      grp('Miete und Hausgeld', [V[12], V[13], V[17], V[18], V[19]]) + grp('Finanzierung', [V[14], V[15], V[16]]) + grp('Einkommen des Käufers', [V[20], V[21], V[22], V[23], V[24]]) +
+      grp('Miete und Hausgeld', [V[12], V[13], V[17], V[18], V[19]]) + grp('Finanzierung', [V[14], V[15], V[16]]) + grp('Einkommen des Käufers', [V[20], V[21], V[22], V[23], V[24]]) + grp('Gutachten zur Restnutzungsdauer, falls Bestand', [V[25]]) +
       '<div class="row"><button class="btn sec" type="button" data-act="vrNeu">Neu beginnen</button><button class="btn ghost" type="button" data-act="drucken">Drucken oder als PDF</button></div></form>' +
       '<div class="stack vr-ergebnis" id="vrErg">' + vrErgebnisHtml() + '</div></div>' +
       '<a class="vr-kurz" id="vrKurz" href="#vrErg">' + vrKurzHtml() + '</a></div>', 'Vorabrechnung');
