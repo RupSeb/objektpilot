@@ -1,4 +1,4 @@
-/* Objektpilot · PDF der Anlage V. Eigener, kleiner PDF-Erzeuger ohne fremde Bibliothek (Standardschrift Helvetica, WinAnsi). */
+/* Wohnnetto · PDF der Anlage V. Eigener, kleiner PDF-Erzeuger ohne fremde Bibliothek (Standardschrift Helvetica, WinAnsi). */
 (function () {
   'use strict';
   var W = 595.28, H = 841.89, RAND = 50;
@@ -80,7 +80,7 @@
     var lx = RAND, ly = H - RAND - 6, s = 26 / 44, P = function (x, y) { return (lx + x * s).toFixed(2) + ' ' + (ly + 26 - y * s).toFixed(2); };
     d.rect(lx, ly, 26, 26, GELB);
     d.ops.push('0.067 0.067 0.067 RG 2 w 1 J 1 j ' + P(11, 23) + ' m ' + P(22, 13) + ' l ' + P(33, 23) + ' l S ' + P(15, 21) + ' m ' + P(15, 31) + ' l ' + P(29, 31) + ' l ' + P(29, 21) + ' l S 1.6 w ' + P(22, 23.5) + ' m ' + P(22, 29) + ' l S ' + P(19.25, 26.25) + ' m ' + P(24.75, 26.25) + ' l S');
-    d.text(RAND + 36, H - RAND + 4, 'Objektpilot', 11, true, SCHWARZ);
+    d.text(RAND + 36, H - RAND + 4, 'Wohnnetto', 11, true, SCHWARZ);
     d.text(RAND + 36, H - RAND - 8, 'Anlage V für Kapitalanleger', 8, false, GRAU);
     if (info.freigegeben) {
       d.rechts(x2, H - RAND + 4, 'Geprüft und freigegeben', 10, true, GRUEN);
@@ -153,7 +153,7 @@
       '3. Bewahren Sie Kaufvertrag, Darlehensunterlagen und Hausgeldabrechnung auf. Das Finanzamt kann sie anfordern.'
     ].forEach(function (t) { d.absatz(RAND, t, 9, breiteText, false, SCHWARZ, 3); });
 
-    var fuss = 'Erstellt mit Objektpilot von Stratvell' + (info.freigegeben && info.kanzlei ? '. Steuerliche Prüfung und Freigabe: ' + info.kanzlei : '. Ohne Prüfung durch eine Kanzlei') + (info.kernVersion ? '. Rechenkern ' + info.kernVersion : '') + '.';
+    var fuss = 'Erstellt mit Wohnnetto' + (info.freigegeben && info.kanzlei ? '. Steuerliche Prüfung und Freigabe: ' + info.kanzlei : '. Ohne Prüfung durch eine Kanzlei') + (info.kernVersion ? '. Rechenkern ' + info.kernVersion : '') + '.';
     return new Blob([d.bytes(fuss)], { type: 'application/pdf' });
   }
 

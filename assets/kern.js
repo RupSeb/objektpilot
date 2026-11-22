@@ -1,6 +1,6 @@
 /*!
  * AnlageVKern: Rechenkern Anlage V (Standardfall Kapitalanlage-Wohnung)
- * Objektpilot · Canis Lupus Sebru Ltd. (Marke Stratvell)
+ * Wohnnetto · Canis Lupus Sebru Ltd. (Marke Stratvell)
  *
  * Grundlage: Marvin Bauers Excel „Anlage V 2025 – Test- und Programmierbasis“ (Blätter AfA,
  * Anlage V, Prüfungen, Testprotokoll), EStG, EStDV, EStR und BMF-Schreiben. Eigenständig

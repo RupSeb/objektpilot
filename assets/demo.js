@@ -5,7 +5,7 @@
   var m = /[?&]demo=(kaeufer|vertrieb|kanzlei)\b/.exec(location.search);
   if (!m) return;
   var ROLLE = m[1];
-  var KEY = 'op_demo_db_v1';
+  var KEY = 'op_demo_db_v2';
   var jetzt = function () { return new Date().toISOString(); };
   var tage = function (n) { var d = new Date(); d.setDate(d.getDate() + n); return d.toISOString(); };
   var nid = function () { return 'd' + Math.random().toString(36).slice(2, 10); };
@@ -40,17 +40,17 @@
       ['kaufvertrag', 'mietvertrag', 'darlehensvertrag'].forEach(function (t) { db.dokument.push({ id: nid(), akte_id: id, typ: t, dateiname: t[0].toUpperCase() + t.slice(1) + '.pdf', pfad: id + '/' + t + '.pdf', groesse: 120000, quelle: 'vertrieb', created_at: tage(-tageAlt) }); });
     }
     // Anna Weber: Kapitalanlegerin, mitten in der Erfassung
-    akte('a-anna', 'OP-2041', 'Anna Weber', 'anna.weber@beispiel.de', 'u-kaeufer', 'Leipzig, Musterstraße 12, WE 7', 'in_erfassung', null,
+    akte('a-anna', 'WN-2041', 'Anna Weber', 'anna.weber@beispiel.de', 'u-kaeufer', 'Leipzig, Musterstraße 12, WE 7', 'in_erfassung', null,
       { eingabe: voll('Leipzig, Musterstraße 12, WE 7', { hausgeld: {}, personen: {} }), stammdaten: {}, fallcheck: kopie(FC), erledigt: { fallcheck: true, wohnung: true, miete: true } }, 6);
     // Für die Kanzlei: zwei Fälle in Prüfung, einer mit Rückfrage, einer freigegeben
     var sd = function (v, n) { return { vorname: v, nachname: n, strasse: 'Beispielweg 3', plz: '80331', ort: 'München', geburtsdatum: '1986-03-14', steuerId: '57302946185', finanzamt: 'München' }; };
-    akte('a-markus', 'OP-2038', 'Markus Krüger', 'm.krueger@beispiel.de', 'u-x1', 'Dresden-Neustadt, Alaunstraße 40, WE 3', 'in_pruefung', 'k1', { eingabe: voll('Dresden-Neustadt, Alaunstraße 40, WE 3'), stammdaten: sd('Markus', 'Krüger'), fallcheck: kopie(FC), erledigt: kopie(ALLE) }, 9);
-    akte('a-selin', 'OP-2035', 'Selin Yilmaz', 's.yilmaz@beispiel.de', 'u-x2', 'Potsdam-West, Zeppelinstraße 21, WE 21', 'in_pruefung', 'k1', { eingabe: voll('Potsdam-West, Zeppelinstraße 21, WE 21', { erwerb: Object.assign(kopie(KAUF.erwerb), { kaufpreis: 289000, baubeginn: null }) }), stammdaten: sd('Selin', 'Yilmaz'), fallcheck: kopie(FC), erledigt: kopie(ALLE) }, 11);
-    akte('a-thomas', 'OP-2031', 'Thomas Hoffmann', 't.hoffmann@beispiel.de', 'u-x3', 'Leipzig-Plagwitz, Karl-Heine-Straße 7, WE 7', 'rueckfrage', 'k1', { eingabe: voll('Leipzig-Plagwitz, Karl-Heine-Straße 7, WE 7'), stammdaten: sd('Thomas', 'Hoffmann'), fallcheck: kopie(FC), erledigt: kopie(ALLE) }, 14);
+    akte('a-markus', 'WN-2038', 'Markus Krüger', 'm.krueger@beispiel.de', 'u-x1', 'Dresden-Neustadt, Alaunstraße 40, WE 3', 'in_pruefung', 'k1', { eingabe: voll('Dresden-Neustadt, Alaunstraße 40, WE 3'), stammdaten: sd('Markus', 'Krüger'), fallcheck: kopie(FC), erledigt: kopie(ALLE) }, 9);
+    akte('a-selin', 'WN-2035', 'Selin Yilmaz', 's.yilmaz@beispiel.de', 'u-x2', 'Potsdam-West, Zeppelinstraße 21, WE 21', 'in_pruefung', 'k1', { eingabe: voll('Potsdam-West, Zeppelinstraße 21, WE 21', { erwerb: Object.assign(kopie(KAUF.erwerb), { kaufpreis: 289000, baubeginn: null }) }), stammdaten: sd('Selin', 'Yilmaz'), fallcheck: kopie(FC), erledigt: kopie(ALLE) }, 11);
+    akte('a-thomas', 'WN-2031', 'Thomas Hoffmann', 't.hoffmann@beispiel.de', 'u-x3', 'Leipzig-Plagwitz, Karl-Heine-Straße 7, WE 7', 'rueckfrage', 'k1', { eingabe: voll('Leipzig-Plagwitz, Karl-Heine-Straße 7, WE 7'), stammdaten: sd('Thomas', 'Hoffmann'), fallcheck: kopie(FC), erledigt: kopie(ALLE) }, 14);
     db.nachricht.push({ id: nid(), akte_id: 'a-thomas', von_rolle: 'kanzlei', text: 'Gehört der Stellplatz zur Wohnung oder wurde er separat gekauft?', created_at: tage(-2) });
-    akte('a-julia', 'OP-2024', 'Julia Brandt', 'j.brandt@beispiel.de', 'u-x4', 'Berlin-Pankow, Florastraße 9, WE 12', 'freigegeben', 'k1', { eingabe: voll('Berlin-Pankow, Florastraße 9, WE 12'), stammdaten: sd('Julia', 'Brandt'), fallcheck: kopie(FC), erledigt: kopie(ALLE) }, 20);
+    akte('a-julia', 'WN-2024', 'Julia Brandt', 'j.brandt@beispiel.de', 'u-x4', 'Berlin-Pankow, Florastraße 9, WE 12', 'freigegeben', 'k1', { eingabe: voll('Berlin-Pankow, Florastraße 9, WE 12'), stammdaten: sd('Julia', 'Brandt'), fallcheck: kopie(FC), erledigt: kopie(ALLE) }, 20);
     // Nur beim Vertrieb sichtbar
-    akte('a-neu1', 'OP-2043', 'Lena Vogt', 'l.vogt@beispiel.de', null, 'Leipzig-Gohlis, Lindenthaler Straße 2, WE 4', 'eingeladen', null, { eingabe: kopie(KAUF), stammdaten: {}, fallcheck: {}, erledigt: {} }, 1);
+    akte('a-neu1', 'WN-2043', 'Lena Vogt', 'l.vogt@beispiel.de', null, 'Leipzig-Gohlis, Lindenthaler Straße 2, WE 4', 'eingeladen', null, { eingabe: kopie(KAUF), stammdaten: {}, fallcheck: {}, erledigt: {} }, 1);
     db.mandat.push({ id: nid(), akte_id: 'a-julia', vereinbart_am: tage(-15), verguetung_brutto: 349 });
     return db;
   }
@@ -103,7 +103,7 @@
   var nr = 2050;
   function neueAkte(name, mail, kid, obj, vz, status, ein, vomVertrieb) {
     var id = nid();
-    DB.akte.push({ id: id, nummer: 'OP-' + (nr++), vertrieb_id: vomVertrieb ? meinOrg : null, kaeufer_email: mail, kaeufer_name: name, kaeufer_id: kid, objekt_bezeichnung: obj, vz: vz, status: status, wahl: null, kanzlei_id: null, status_an_vertrieb: false, created_at: jetzt(), updated_at: jetzt() });
+    DB.akte.push({ id: id, nummer: 'WN-' + (nr++), vertrieb_id: vomVertrieb ? meinOrg : null, kaeufer_email: mail, kaeufer_name: name, kaeufer_id: kid, objekt_bezeichnung: obj, vz: vz, status: status, wahl: null, kanzlei_id: null, status_an_vertrieb: false, created_at: jetzt(), updated_at: jetzt() });
     DB.akte_daten.push({ akte_id: id, eingabe: ein || {}, vom_vertrieb: vomVertrieb ? kopie(ein || {}) : {}, stammdaten: {}, fallcheck: {}, erledigt: {} });
     return id;
   }

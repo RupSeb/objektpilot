@@ -1,4 +1,4 @@
-/* Objektpilot · App. Ohne Build-Schritt, läuft als statische Seite. Daten in Supabase (Frankfurt), Zugriff über RLS. */
+/* Wohnnetto · App. Ohne Build-Schritt, läuft als statische Seite. Daten in Supabase (Frankfurt), Zugriff über RLS. */
 (function () {
   'use strict';
   var C = window.OP_CONFIG;
@@ -52,7 +52,7 @@
   function debounce(fn, ms) { var t; return function () { var a = arguments, s = this; clearTimeout(t); t = setTimeout(function () { fn.apply(s, a); }, ms); }; }
   function mount(html, titel) {
     main.innerHTML = html;
-    if (titel) document.title = titel + ' | Objektpilot';
+    if (titel) document.title = titel + ' | Wohnnetto';
     var h = main.querySelector('h1'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
     hochzaehlen();
     einblenden();
@@ -323,7 +323,7 @@
   function viewAnmelden() {
     var mail = (new URLSearchParams(location.search)).get('mail') || sessionStorageGet('op_mail') || '';
     mount('<div class="auth">' +
-      '<section class="side" aria-label="Über Objektpilot"><div class="side-bild" aria-hidden="true"></div><span class="eyebrow">Anlage V für Kapitalanleger</span><h1>Mehr netto<br>aus Ihrer Wohnung.<br><em>Von der Kanzlei geprüft.</em></h1>' +
+      '<section class="side" aria-label="Über Wohnnetto"><div class="side-bild" aria-hidden="true"></div><span class="eyebrow">Anlage V für Kapitalanleger</span><h1>Mehr netto<br>aus Ihrer Wohnung.<br><em>Von der Kanzlei geprüft.</em></h1>' +
       '<div class="demo" aria-hidden="true"><span>Beispiel: Ihr Netto-Plus mit Freibetrag</span><strong>+<span data-zahl="551">551 €</span></strong><small>im Monat, vorläufig</small></div>' +
       '<ul><li>Kam die Wohnung über einen Vertrieb, sind die Kaufdaten schon da. Sonst tragen Sie sie in etwa 15 Minuten selbst ein.</li><li>Eine Steuerkanzlei prüft alles und gibt die Anlage V frei.</li><li>Server in Frankfurt. Ein Vertrieb sieht keine Steuerdaten.</li></ul></section>' +
       '<section class="form"><div>' + logo3d('auf-login') + '<div class="stack" id="authBox">' + authSchritt1(mail) + '</div></div></section></div>', 'Anmelden');
@@ -377,7 +377,7 @@
     try {
       var f = await sb.auth.mfa.listFactors();
       (f.data && f.data.all || []).filter(function (x) { return x.status === 'unverified'; }).forEach(function (x) { sb.auth.mfa.unenroll({ factorId: x.id }); });
-      var e = q(await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Objektpilot ' + Date.now() }));
+      var e = q(await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Wohnnetto ' + Date.now() }));
       mount('<div class="wrap narrow"><div class="card pad-l stack"><span class="eyebrow">Sicherheit</span><h1 class="h2">Zweiten Faktor einrichten</h1>' +
         '<p class="muted">Für Vertrieb und Kanzlei ist ein zweiter Faktor Pflicht. Scannen Sie den QR-Code mit einer Authenticator-App, zum Beispiel Microsoft Authenticator, Google Authenticator oder 1Password.</p>' +
         '<div class="row" style="align-items:flex-start"><img src="' + esc(e.totp.qr_code) + '" alt="QR-Code für die Authenticator-App" width="180" height="180" style="background:#fff;border-radius:12px;padding:8px">' +
@@ -1274,7 +1274,7 @@
       '<section class="card pad stack"><h2 class="h3">Miete und Finanzierung</h2><div class="grid2">' + [F.miete[0], F.miete[1], F.finanzierung[0], F.finanzierung[1]].map(function (f) { return feldHtml(Object.assign({}, f, { req: 0 }), { eingabe: VNEU.eingabe }, null, 'v' + f.p.replace(/\W/g, '_')); }).join('') + '</div>' + feldHtml(Object.assign({}, F.finanzierung[4], { req: 0 }), { eingabe: VNEU.eingabe }, null, 'v_gb') + '</section>' +
       '<section class="card pad stack"><h2 class="h3">Unterlagen</h2><p class="small muted">Kaufvertrag, Kaufpreisaufteilung, Mietvertrag, Darlehensvertrag. PDF, bis 20 MB je Datei.</p>' +
       '<div class="drop" id="drop"><p class="small"><b>Dateien hierher ziehen</b> oder <label class="link" style="cursor:pointer">auswählen<input type="file" class="sr" id="u_files" accept="application/pdf,image/*" multiple></label></p></div><ul class="docs" id="u_list"></ul></section>' +
-      '<label class="check"><input type="checkbox" id="u_ok"> <span>Mein Käufer hat in die Weitergabe seiner Kaufunterlagen an Objektpilot eingewilligt.</span></label>' +
+      '<label class="check"><input type="checkbox" id="u_ok"> <span>Mein Käufer hat in die Weitergabe seiner Kaufunterlagen an Wohnnetto eingewilligt.</span></label>' +
       '<div class="savebar"><div class="inner"><button class="btn" type="submit">Übergeben</button><a class="btn ghost" href="#/vertrieb">Abbrechen</a></div></div></form></div>', 'Käufer übergeben');
   }
   function vListe() {
@@ -1286,7 +1286,7 @@
   function rateTyp(n) { n = n.toLowerCase(); if (/kaufpreisauf|aufteilung/.test(n)) return 'kaufpreisaufteilung'; if (/kauf|notar.*vertrag|urkunde/.test(n)) return 'kaufvertrag'; if (/miet/.test(n)) return 'mietvertrag'; if (/darlehen|kredit|finanz/.test(n)) return 'darlehensvertrag'; if (/grundschuld/.test(n)) return 'notar_grundschuld'; if (/wirtschaftsplan|hausgeld/.test(n)) return 'wirtschaftsplan'; if (/zins/.test(n)) return 'zinsbescheinigung'; return 'sonstiges'; }
   function einladungText(name, mail) {
     var link = location.origin + location.pathname + '?mail=' + encodeURIComponent(mail);
-    return 'Hallo ' + name.split(' ')[0] + ',\n\nherzlichen Glückwunsch zu Ihrer Wohnung. Damit die Steuerersparnis bei Ihnen ankommt, haben wir Ihre Kaufunterlagen an Objektpilot übergeben. Dort ist Ihre Anlage V schon zum großen Teil vorbereitet, eine Steuerkanzlei prüft sie und gibt sie frei.\n\nSo geht es los:\n1. Öffnen Sie ' + link + '\n2. Melden Sie sich mit dieser E-Mail-Adresse an, Sie bekommen einen Code.\n3. Prüfen und ergänzen Sie Ihre Angaben, das dauert etwa zehn Minuten.\n\nIhre Steuerdaten sehen nur Sie und die Kanzlei, die Sie wählen.\n\nViele Grüße';
+    return 'Hallo ' + name.split(' ')[0] + ',\n\nherzlichen Glückwunsch zu Ihrer Wohnung. Damit die Steuerersparnis bei Ihnen ankommt, haben wir Ihre Kaufunterlagen an Wohnnetto übergeben. Dort ist Ihre Anlage V schon zum großen Teil vorbereitet, eine Steuerkanzlei prüft sie und gibt sie frei.\n\nSo geht es los:\n1. Öffnen Sie ' + link + '\n2. Melden Sie sich mit dieser E-Mail-Adresse an, Sie bekommen einen Code.\n3. Prüfen und ergänzen Sie Ihre Angaben, das dauert etwa zehn Minuten.\n\nIhre Steuerdaten sehen nur Sie und die Kanzlei, die Sie wählen.\n\nViele Grüße';
   }
 
   /* ---------- Kanzlei ---------- */
