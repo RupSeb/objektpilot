@@ -24,7 +24,7 @@
     var db = {
       organisation: [
         { id: 'k1', name: 'Bauer & Weigl Steuerberater', typ: 'kanzlei', aktiv: true, preis_kaufjahr: 349, preis_folgejahr: 249, anschrift: '' },
-        { id: 'k2', name: 'Mack GmbH Steuerberatungsgesellschaft', typ: 'kanzlei', aktiv: true, preis_kaufjahr: 349, preis_folgejahr: 249, anschrift: 'Fulda' },
+        { id: 'k2', name: 'Mack GmbH Steuerberatungsgesellschaft', typ: 'kanzlei', aktiv: true, preis_kaufjahr: 349, preis_folgejahr: 249, anschrift: 'Fulda', kontakt_name: 'Florian Mack', kontakt_titel: 'Steuerberater', kontakt_bild: 'assets/team/florian-mack.jpg' },
         { id: 'v1', name: 'Musterhaus Kapitalanlagen GmbH', typ: 'vertrieb', aktiv: true, anschrift: '' }
       ],
       profil: [

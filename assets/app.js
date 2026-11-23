@@ -560,21 +560,34 @@
     return '';
   }
   function kanzleiName(id) { var o = S.orgs.filter(function (x) { return x.id === id; })[0]; return o ? o.name : 'Ihre Kanzlei'; }
+  // Ansprechpartner einer Kanzlei: Foto, sonst Initialen, damit alle Kanzleien gleich aussehen
+  function avatarHtml(o, gr) {
+    var cls = 'avatar' + (gr ? ' ' + gr : '');
+    if (o && o.kontakt_bild) return '<img class="' + cls + '" src="' + esc(o.kontakt_bild) + '" alt="" loading="lazy" decoding="async">';
+    var ini = String((o && (o.kontakt_name || o.name)) || 'K').split(/\s+/).filter(function (w) { return /^[A-ZÄÖÜ]/.test(w); }).slice(0, 2).map(function (w) { return w.charAt(0); }).join('');
+    return '<span class="' + cls + ' ini" aria-hidden="true">' + esc(ini || 'K') + '</span>';
+  }
+  function ansprechKarte(o, text) {
+    if (!o || !o.kontakt_name) return '';
+    return '<section class="card pad ansprech" aria-label="Ihr Ansprechpartner">' + avatarHtml(o, 'lg') + '<div class="stack-s" style="gap:2px"><span class="eyebrow">Ihr Ansprechpartner</span><b class="a-name">' + esc(o.kontakt_name) + '</b><span class="a-rolle">' + esc((o.kontakt_titel ? o.kontakt_titel + ', ' : '') + o.name) + '</span>' + (text ? '<p class="small muted" style="margin-top:6px">' + text + '</p>' : '') + '</div></section>';
+  }
   function nachrichtenHtml(msgs, ich) {
     if (!msgs.length) return '';
     return '<div class="stack-s" role="log" aria-label="Nachrichten">' + msgs.map(function (m) { return '<div class="msg ' + m.von_rolle + '">' + esc(m.text) + '<small>' + (m.von_rolle === ich ? 'Sie' : m.von_rolle === 'kanzlei' ? 'Kanzlei' : 'Käufer') + ', ' + zeit(m.created_at) + '</small></div>'; }).join('') + '</div>';
   }
   function statusInhalt() {
-    var a = A.akte, s = a.status, kname = kanzleiName(a.kanzlei_id);
+    var a = A.akte, s = a.status, kname = kanzleiName(a.kanzlei_id), korg = S.orgs.filter(function (x) { return x.id === a.kanzlei_id; })[0];
     var schritte = [['Angaben und Unterlagen vollständig', 1], ['Beauftragt bei ' + esc(kname), 1], ['Prüfung durch die Kanzlei', s === 'freigegeben' || s === 'abgeschlossen' ? 1 : 2], ['Anlage V freigegeben', s === 'freigegeben' || s === 'abgeschlossen' ? 1 : 0]];
     var html = '';
     if (s === 'eigener_stb') return datenpaketHtml();
     if (s === 'sonderfall') {
       html += '<div class="note warn"><span class="ic" aria-hidden="true">!</span><span><b>Ihr Fall braucht eine individuelle Prüfung</b>' + esc(kname) + ' sieht sich Ihre Angaben an und meldet sich mit einem Angebot. Das kann ein paar Tage dauern.</span></div>';
+      html += ansprechKarte(korg, 'Die Kanzlei meldet sich hier im Portal bei Ihnen.');
       html += nachrichtenHtml(A.msgs, 'kaeufer');
       return html;
     }
     html += '<div class="card pad"><div class="tl">' + schritte.map(function (x) { return '<div class="' + (x[1] === 1 ? 'd' : x[1] === 2 ? 'now' : '') + '"><span><b>' + x[0] + '</b>' + (x[1] === 2 ? '<small>' + (s === 'rueckfrage' ? 'Die Kanzlei hat eine Frage an Sie' : 'Voraussichtlich fertig bis ' + werktagePlus(a.updated_at, 5)) + '</small>' : '') + '</span></div>'; }).join('') + '</div></div>';
+    html += ansprechKarte(korg, s === 'freigegeben' || s === 'abgeschlossen' ? 'Ihre Anlage V ist geprüft. Fragen dazu stellen Sie der Kanzlei direkt.' : 'Rückfragen zu Ihrer Anlage V klärt die Kanzlei direkt hier im Portal mit Ihnen.');
     if (s === 'rueckfrage' || A.msgs.length) {
       html += '<section class="card pad stack" aria-labelledby="nh"><h2 class="h3" id="nh">Nachrichten mit der Kanzlei</h2>' + nachrichtenHtml(A.msgs, 'kaeufer') +
         (s === 'rueckfrage' ? '<form class="stack" id="fAntwort"><div class="field"><label for="antwort">Ihre Antwort</label><textarea class="ta" id="antwort" rows="3" required></textarea></div><div class="row"><button class="btn" type="submit">Antwort senden</button><a class="btn sec" href="#/akte/' + a.id + '/unterlagen">Unterlage nachreichen</a></div></form>' : '') + '</section>';
@@ -1204,7 +1217,7 @@
       '<div class="kpis"><div class="kpi card"><strong class="num">' + eur(r.summen.einnahmen) + '</strong><span>Einnahmen ' + A.akte.vz + '</span></div><div class="kpi card"><strong class="num">' + eur(r.summen.werbungskosten) + '</strong><span>Werbungskosten</span></div><div class="kpi card"><strong class="num">' + eur(r.summen.ueberschuss) + '</strong><span>Ergebnis</span></div></div>' +
       (r.freibetrag && r.freibetrag.steuerwirkungMonat ? '<p class="small">Mit Freibetrag ab ' + r.freibetrag.jahr + ' voraussichtlich rund <b>' + eur(r.freibetrag.steuerwirkungMonat) + ' mehr netto im Monat</b>.</p>' : '') +
       r.hinweise.filter(function (h) { return h.id === 'P10c'; }).map(function (h) { return '<div class="note info"><span><b>' + esc(h.titel) + '</b>' + esc(h.text) + ' Die Kanzlei kann Ihnen dazu ein Angebot machen.</span></div>'; }).join('') + '</section>' : '';
-    var opts = kanzleien.map(function (o) { return '<button type="button" class="opt" data-act="wahl" data-v="' + o.id + '" aria-pressed="' + (w === o.id) + '"><i class="dot" aria-hidden="true"></i><span><b>' + esc(o.name) + '</b><span>' + (sf ? 'Prüft Ihren Fall und macht Ihnen ein Angebot' : 'Prüft und gibt frei. Festpreis ' + eur2(preis(o)) + ' inkl. 19% USt, Rückfragen inklusive') + '</span></span></button>'; }).join('') +
+    var opts = kanzleien.map(function (o) { return '<button type="button" class="opt mit-person" data-act="wahl" data-v="' + o.id + '" aria-pressed="' + (w === o.id) + '"><i class="dot" aria-hidden="true"></i>' + avatarHtml(o) + '<span><b>' + esc(o.name) + '</b>' + (o.kontakt_name ? '<span class="o-person">' + esc(o.kontakt_name + (o.kontakt_titel ? ', ' + o.kontakt_titel : '')) + '</span>' : '') + '<span>' + (sf ? 'Prüft Ihren Fall und macht Ihnen ein Angebot' : 'Prüft und gibt frei. Festpreis ' + eur2(preis(o)) + ' inkl. 19% USt, Rückfragen inklusive') + '</span></span></button>'; }).join('') +
       '<button type="button" class="opt" data-act="wahl" data-v="eigen" aria-pressed="' + (w === 'eigen') + '"><i class="dot" aria-hidden="true"></i><span><b>Mein eigener Steuerberater</b><span>Sie bekommen die vorbereitete Anlage V und alle Unterlagen als Datenpaket</span></span></button>';
     var gew = kanzleien.filter(function (o) { return o.id === w; })[0];
     var mandatText = gew ? 'Ich beauftrage ' + gew.name + ' mit der Prüfung und Erstellung der Anlage V für die Wohnung ' + A.akte.objekt_bezeichnung + ' für das Steuerjahr ' + A.akte.vz + ' auf Grundlage meiner Angaben und Unterlagen. ' +
@@ -1250,12 +1263,16 @@
         (rows.length ? (function () {
           var an = rows.filter(function (a) { return a.status !== 'eingeladen'; }).length, fe = rows.filter(function (a) { return a.status === 'erledigt'; }).length;
           return '<div class="kpis"><div class="card kpi"><strong>' + rows.length + '</strong><span>übergeben</span></div><div class="card kpi"><strong>' + an + '</strong><span>angenommen, ' + Math.round(an / rows.length * 100) + '%</span></div><div class="card kpi dark"><strong>' + fe + '</strong><span>erledigt</span></div></div>';
-        })() : '') +
+        })() : '') + vertriebAnsprech() +
         (rows.length ? '<div class="card tw"><table><thead><tr><th>Akte</th><th>Käufer</th><th>Wohnung</th><th>Jahr</th><th>Unterlagen</th><th>Status</th></tr></thead><tbody>' +
           rows.map(function (a) { var s = VSTAT[a.status] || [a.status, 'c-grey']; return '<tr><td class="mono small">' + esc(a.nummer) + '</td><td><b>' + esc(a.kaeufer_name) + '</b><br><span class="tiny">' + esc(a.kaeufer_email) + '</span></td><td>' + esc(a.objekt_bezeichnung) + '</td><td class="num">' + a.vz + '</td><td class="num">' + a.dokumente + '</td><td><span class="chip ' + s[1] + '">' + s[0] + '</span></td></tr>'; }).join('') + '</tbody></table></div>' :
           '<div class="card empty"><div class="ill" aria-hidden="true"></div><h2 class="h2">Noch keine Käufer übergeben</h2><p class="muted" style="max-width:46ch">Am besten direkt nach dem Notartermin. Das dauert zwei Minuten, die Unterlagen haben Sie ja schon.</p><a class="btn" href="#/vertrieb/neu">Ersten Käufer übergeben</a></div>') +
         '<div class="note info"><span class="ic" aria-hidden="true">i</span><span><b>Datenwand</b>Sie sehen nur, ob Ihr Käufer die Einladung angenommen hat. Steuerdaten, Ergebnisse und die gewählte Kanzlei sehen Sie nicht. Den Status „Steuerservice aktiv“ sehen Sie nur, wenn Ihr Käufer zustimmt.</span></div></div>', 'Ihre Käufer');
     } catch (e) { fehler(e); }
+  }
+  function vertriebAnsprech() {
+    var p = C && C.ansprechpartner; if (!p) return '';
+    return '<section class="card ansprech gross" aria-label="Ihr Ansprechpartner"><img class="avatar xl" src="' + esc(p.bild) + '" alt="' + esc(p.name) + '" loading="lazy" decoding="async"><div class="stack-s"><span class="eyebrow">Ihr Ansprechpartner im Pilotprogramm</span><b class="a-name">' + esc(p.name) + '</b><span class="a-rolle">' + esc(p.titel + ', ' + p.firma) + '</span><p class="small muted" style="max-width:52ch">Fragen zum Ablauf, zur Übergabe Ihrer Käufer oder zum Rechner beantwortet Ihnen ' + esc(p.name) + ' persönlich.</p><div class="row"><a class="btn sec sm" href="mailto:' + esc(p.mail) + '?subject=' + encodeURIComponent('Wohnnetto Pilotprogramm') + '">E-Mail schreiben</a></div></div></section>';
   }
   var VNEU = { eingabe: {}, files: [] };
   function viewVertriebNeu() {
